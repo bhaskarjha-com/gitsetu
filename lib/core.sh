@@ -71,12 +71,14 @@ load_profiles() {
     PROFILE_PROVIDERS=()
     PROFILE_SIGNS=()
     PROFILE_KEYS=()
+    PROFILE_USERS=()
+    PROFILE_PATS=()
     
     if [[ ! -f "$GITSETU_PROFILES_CONF" ]]; then
         return 0
     fi
-    local label email dir provider sign_commits key_path
-    while IFS=: read -r label email dir provider sign_commits key_path || [[ -n "$label" ]]; do
+    local label email dir provider sign_commits key_path provider_user
+    while IFS=: read -r label email dir provider sign_commits key_path provider_user || [[ -n "$label" ]]; do
         [[ "$label" == "#"* ]] && continue
         [[ -z "$label" ]] && continue
         PROFILE_LABELS+=("$label")
@@ -84,6 +86,8 @@ load_profiles() {
         PROFILE_PROVIDERS+=("${provider:-github.com}")
         PROFILE_SIGNS+=("${sign_commits:-0}")
         PROFILE_KEYS+=("${key_path:-$HOME/.ssh/id_ed25519_${label}}")
+        PROFILE_USERS+=("$provider_user")
+        PROFILE_PATS+=("")
         
         # Load name and email from profile config
         local profile_path="$GITSETU_PROFILES_DIR/${label}.gitconfig"

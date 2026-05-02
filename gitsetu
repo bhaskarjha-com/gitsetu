@@ -80,6 +80,7 @@ gitsetu_source "$GITSETU_SCRIPT_DIR/lib/verify.sh"
 gitsetu_source "$GITSETU_SCRIPT_DIR/lib/teardown.sh"
 gitsetu_source "$GITSETU_SCRIPT_DIR/lib/discovery.sh"
 gitsetu_source "$GITSETU_SCRIPT_DIR/lib/setup.sh"
+gitsetu_source "$GITSETU_SCRIPT_DIR/lib/keychain.sh"
 
 # ------------------------------------------------------------------------------
 # Unified Global Cleanup Architecture
@@ -518,11 +519,66 @@ cmd_prompt() {
                 matched_profile="$label"
             fi
         fi
-    done < "$GITSETU_PROFILES_CONF"
+        done < "$GITSETU_PROFILES_CONF"
 
     if [[ -n "$matched_profile" ]]; then
         echo "$matched_profile"
     fi
+}
+
+# ------------------------------------------------------------------------------
+# cmd_credential — Git Credential Helper Broker
+# ------------------------------------------------------------------------------
+cmd_credential() {
+    local action="${1:-}"
+    if [[ -z "$action" ]]; then
+        return 1
+    fi
+
+    # Read from stdin
+    local host=""
+    local protocol=""
+    local username=""
+    local password=""
+
+    while read -r line; do
+        [[ -z "$line" ]] && break
+        case "$line" in
+            host=*) host="${line#*=}" ;;
+            protocol=*) protocol="${line#*=}" ;;
+            username=*) username="${line#*=}" ;;
+            password=*) password="${line#*=}" ;;
+        esac
+    done
+
+    # We only care about https and host
+    if [[ "$protocol" != "https" ]] || [[ -z "$host" ]]; then
+        return 0
+    fi
+
+    # Identify profile context
+    local profile
+    profile=$(cmd_prompt)
+    if [[ -z "$profile" ]]; then
+        # Not in a profile directory, ignore
+        return 0
+    fi
+
+    detect_os
+
+    case "$action" in
+        get)
+            keychain_get "$profile" "$host"
+            ;;
+        store)
+            if [[ -n "$username" ]] && [[ -n "$password" ]]; then
+                keychain_store "$profile" "$host" "$username" "$password"
+            fi
+            ;;
+        erase)
+            keychain_erase "$profile" "$host"
+            ;;
+    esac
 }
 
 # ------------------------------------------------------------------------------
@@ -598,6 +654,9 @@ main() {
             ;;
         prompt)
             cmd_prompt "$@"
+            ;;
+        credential)
+            cmd_credential "$@"
             ;;
         teardown)
             local force=0

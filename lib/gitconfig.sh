@@ -34,23 +34,11 @@ ${GITSETU_MANAGED_START}
     defaultBranch = main
 EOF
 
-    # Add OS-native Credential Helper
-    local cred_helper=""
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        cred_helper="osxkeychain"
-    elif [[ "$OSTYPE" == "msys"* ]] || [[ "$OSTYPE" == "cygwin"* ]]; then
-        cred_helper="manager"
-    elif [[ "$OSTYPE" == "linux"* ]]; then
-        cred_helper="cache --timeout=3600"
-    fi
-
-    if [[ -n "$cred_helper" ]]; then
-        cat <<EOF
+    cat <<EOF
 
 [credential]
-    helper = ${cred_helper}
+    helper = "${GITSETU_SCRIPT_DIR}/gitsetu credential"
 EOF
-    fi
 
     # Add safe.directory for each non-default profile (solves VirtualBox/WSL dubious ownership)
     local has_safe=0
@@ -233,6 +221,17 @@ EOF
 
 [core]
     sshCommand = ssh -i ${key_path}
+EOF
+
+    if [[ -n "${provider_user:-}" ]] && [[ -n "${provider:-}" ]]; then
+        cat <<EOF
+
+[credential "https://${provider}"]
+    username = ${provider_user}
+EOF
+    fi
+
+    cat <<EOF
 ${GITSETU_MANAGED_END} Profile: ${label}
 EOF
 }
@@ -250,6 +249,8 @@ write_profile_gitconfig() {
     local email="$3"
     local sign_commits="${4:-0}"
     local key_path="${5:-$HOME/.ssh/id_ed25519_${label}}"
+    local provider="${6:-}"
+    local provider_user="${7:-}"
     local profile_path="$GITSETU_PROFILES_DIR/${label}.gitconfig"
 
     local content
@@ -288,7 +289,7 @@ write_profiles_conf() {
     # Write header
     cat > "$tmp_file" <<EOF
 # gitsetu profile registry — generated on $(date +%Y-%m-%d)
-# Format: label:email:directory:provider:sign_commits:key_path
+# Format: label:email:directory:provider:sign_commits:key_path:provider_user
 # Used by the pre-commit guard hook
 EOF
 
@@ -300,10 +301,14 @@ EOF
         local provider="${PROFILE_PROVIDERS[$i]:-github.com}"
         local sign_commits="${PROFILE_SIGNS[$i]:-0}"
         local key_path="${PROFILE_KEYS[$i]:-~/.ssh/id_ed25519_${label}}"
+        local provider_user="${PROFILE_USERS[$i]:-}"
         
         # We leave the email column empty in the registry to prevent dual-state desynchronization.
         # It will be dynamically parsed from profile.gitconfig at runtime.
-        printf '%s::%s:%s:%s:%s\n' "$label" "$dir" "$provider" "$sign_commits" "$key_path" >> "$tmp_file"
+        printf '%s::%s:%s:%s:%s:%s\n' "$label" "$dir" "$provider" "$sign_commits" "$key_path" "$provider_user" >> "$tmp_file"
+        
+        # Write the gitconfig (now with provider and provider_user)
+        write_profile_gitconfig "$label" "${PROFILE_NAMES[$i]}" "${PROFILE_EMAILS[$i]}" "$sign_commits" "$key_path" "$provider" "$provider_user"
     done
 
     mv "$tmp_file" "$GITSETU_PROFILES_CONF"

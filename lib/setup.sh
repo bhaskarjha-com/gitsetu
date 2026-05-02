@@ -80,6 +80,18 @@ prompt_edit_profile() {
     fi
     ask "SSH Key Path" "$def_key"
     if [[ -n "$REPLY" ]]; then PROFILE_KEYS[i]=$(normalize_path "$REPLY"); fi
+
+    # HTTPS PAT Integration
+    ask "Provider Username (e.g. GitHub handle, for HTTPS cloning)" "${PROFILE_USERS[i]:-}"
+    if [[ -n "$REPLY" ]]; then 
+        PROFILE_USERS[i]="$REPLY"
+        if confirm "Would you like to store a Personal Access Token (PAT) for this profile now?" "n"; then
+            ask_password "Enter PAT token"
+            if [[ -n "$REPLY" ]]; then
+                PROFILE_PATS[i]="$REPLY"
+            fi
+        fi
+    fi
 }
 
 # ------------------------------------------------------------------------------
@@ -121,7 +133,19 @@ prompt_add_profile() {
     
     PROFILE_PROVIDERS[PROFILE_COUNT]="github.com"
     PROFILE_SIGNS[PROFILE_COUNT]="${GITSETU_DEFAULT_SIGN:-0}"
-    
+
+    ask "Provider Username (e.g. GitHub handle, for HTTPS cloning)" ""
+    PROFILE_USERS[PROFILE_COUNT]="$REPLY"
+    PROFILE_PATS[PROFILE_COUNT]=""
+    if [[ -n "$REPLY" ]]; then
+        if confirm "Would you like to store a Personal Access Token (PAT) for this profile now?" "n"; then
+            ask_password "Enter PAT token"
+            if [[ -n "$REPLY" ]]; then
+                PROFILE_PATS[PROFILE_COUNT]="$REPLY"
+            fi
+        fi
+    fi
+
     PROFILE_COUNT=$((PROFILE_COUNT + 1))
 }
 
@@ -186,6 +210,30 @@ execute_blueprint() {
             fi
         fi
     done
+
+    # 1.5 Store PATs in Keychain
+    local has_pats=0
+    for (( i=0; i<PROFILE_COUNT; i++ )); do
+        if [[ -n "${PROFILE_PATS[$i]:-}" ]] && [[ -n "${PROFILE_USERS[$i]:-}" ]]; then
+            has_pats=1
+            break
+        fi
+    done
+    if [[ "$has_pats" -eq 1 ]]; then
+        print_section "Storing Credentials in Keychain"
+        for (( i=0; i<PROFILE_COUNT; i++ )); do
+            if [[ -n "${PROFILE_PATS[$i]:-}" ]] && [[ -n "${PROFILE_USERS[$i]:-}" ]]; then
+                local provider="${PROFILE_PROVIDERS[$i]:-github.com}"
+                if keychain_store "${PROFILE_LABELS[i]}" "$provider" "${PROFILE_USERS[i]}" "${PROFILE_PATS[i]}"; then
+                    print_success "Stored PAT for ${PROFILE_USERS[i]}@${provider}"
+                else
+                    print_error "Failed to store PAT for ${PROFILE_USERS[i]}@${provider}"
+                fi
+                # Erase PAT from memory after storing
+                PROFILE_PATS[i]=""
+            fi
+        done
+    fi
 
     # 2. Write profile gitconfigs
     print_section "Writing Git Configuration"

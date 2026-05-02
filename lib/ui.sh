@@ -164,6 +164,26 @@ ask() {
     fi
 }
 
+# Ask for a password/token without echoing to the screen. Result in $REPLY.
+# Usage: ask_password "Enter PAT token"
+ask_password() {
+    local prompt="$1"
+    REPLY=""
+    
+    printf >&2 '  %b[?]%b %s: ' "$CYAN" "$RESET" "$prompt"
+    
+    if [[ -n "${CI:-}" ]] || [[ ! -t 0 ]]; then
+        return 0
+    fi
+    
+    # Disable echo
+    stty -echo 2>/dev/null || true
+    read -r REPLY </dev/tty || true
+    # Re-enable echo
+    stty echo 2>/dev/null || true
+    printf >&2 '\n'
+}
+
 # Ask and loop until non-empty response. Result in $REPLY.
 # Usage: ask_required "Your email"
 ask_required() {
