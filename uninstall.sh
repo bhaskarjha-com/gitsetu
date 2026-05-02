@@ -22,11 +22,15 @@ echo -e "\n${BOLD}─── Uninstalling GitSetu ───${RESET}\n"
 echo -e "  ${BOLD}Wait!${RESET} If you have active GitSetu configurations in your global ~/.gitconfig,"
 echo -e "  you should run ${CYAN}gitsetu teardown --deep${RESET} before proceeding to remove them safely."
 echo ""
-echo -n "  Are you sure you want to remove the GitSetu executables? [y/N] "
-read -r response </dev/tty || true
-if [[ ! "$response" =~ ^[Yy]$ ]]; then
-    echo -e "  ${RED}Uninstallation aborted.${RESET}\n"
-    exit 0
+if [[ -n "${CI:-}" ]] || [[ ! -t 0 ]]; then
+    echo "  Non-interactive environment detected. Proceeding..."
+else
+    echo -n "  Are you sure you want to remove the GitSetu executables? [y/N] "
+    read -r response </dev/tty || true
+    if [[ ! "$response" =~ ^[Yy]$ ]]; then
+        echo -e "  ${RED}Uninstallation aborted.${RESET}\n"
+        exit 0
+    fi
 fi
 
 # 1. Remove symlinks

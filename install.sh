@@ -8,8 +8,7 @@
 
 set -euo pipefail
 
-REPO_URL="https://github.com/bhaskarjha-com/gideon.git"
-# Note: Using 'gideon.git' as the repository URL based on current context.
+REPO_URL="${GITSETU_REPO_URL:-https://github.com/bhaskarjha-com/gideon.git}"
 SHARE_DIR="$HOME/.local/share/gitsetu"
 BIN_DIR="$HOME/.local/bin"
 
@@ -32,6 +31,8 @@ else
     mkdir -p "$HOME/.local/share"
     git clone --quiet "$REPO_URL" "$SHARE_DIR"
 fi
+
+chmod +x "$SHARE_DIR/gitsetu"
 
 # 2. Setup symlinks
 echo -e "  Configuring executables in ${CYAN}$BIN_DIR${RESET}..."

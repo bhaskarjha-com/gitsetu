@@ -66,7 +66,7 @@ graph TD
 ```bash
 curl -sL https://raw.githubusercontent.com/bhaskarjha-com/gitsetu/main/install.sh | bash
 ```
-> **Note:** The installer creates a `git-setu` alias, meaning you can run GitSetu natively as `git setu`!
+> **Note:** The installer securely clones the repository to `~/.local/share/gitsetu` and creates a `git-setu` global symlink, meaning you can run GitSetu natively as `git setu`!
 
 **2. Add your identities once:**
 ```bash
@@ -157,7 +157,22 @@ $ git commit -m "fix critical auth bug"
 
 ---
 
-## 06. Enterprise Automation & Zero-Trust Architecture
+## 06. Uninstallation
+
+GitSetu leaves no ghost files behind. To safely remove GitSetu and all of its global configuration injections:
+
+```bash
+# 1. Safely remove GitSetu configurations from your global ~/.gitconfig
+gitsetu teardown --deep
+
+# 2. Remove the repository clone and symlinks
+curl -sL https://raw.githubusercontent.com/bhaskarjha-com/gitsetu/main/uninstall.sh | bash
+```
+*(Note: Your generated `~/.ssh/id_ed25519_*` keys are intentionally preserved for safety).*
+
+---
+
+## 07. Enterprise Automation & Zero-Trust Architecture
 
 GitSetu is designed from the ground up for highly parallel CI/CD environments and zero-touch `ansible` provisioning, adopting a **strictly secure, Zero-Trust Architecture**:
 * **Zero-Trust Pre-Commit Guard & SSOT:** The identity guard enforces a "fail-closed" boundary. If the GitSetu configuration is missing, tampered with, or if the environment's `$HOME` is overridden maliciously, the hook will unconditionally block the commit. To prevent "dual-state" desynchronization, the guard acts as a Single Source of Truth (SSOT), dynamically querying the isolated `.gitconfig` files instead of relying on central registries.

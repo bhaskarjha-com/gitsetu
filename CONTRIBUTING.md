@@ -13,15 +13,14 @@ No build step. No dependencies to install.
 
 ## Running Tests
 
-```bash
-# All tests
-for f in tests/test_*.sh; do bash "$f"; done
+We use a standard `Makefile` to orchestrate our test suite.
 
-# Specific test file
-bash tests/test_validate.sh
+```bash
+# Run the entire 122-test sandbox matrix
+make test
 ```
 
-Tests use an isolated `$HOME` in a temp directory — they never touch your real configuration.
+Tests automatically run in an isolated `$HOME` in a temp directory — they never touch your real configuration.
 
 ## Linting
 
@@ -31,7 +30,7 @@ Tests use an isolated `$HOME` in a temp directory — they never touch your real
 # macOS: brew install shellcheck
 
 # Lint all scripts
-shellcheck gitsetu lib/*.sh tests/*.sh
+make lint
 ```
 
 All scripts must pass ShellCheck with **zero warnings**.
