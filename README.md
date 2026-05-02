@@ -101,7 +101,7 @@ Author: Aditya Kumar <aditya@company.com> ← correct, automatically
 - **zero dependency:** Pure Bash. No Node. No Python. No package manager.
 - **no daemon:** GitSetu writes config once and lets Git's native `includeIf` do the switching. Zero background processes. Zero memory footprint.
 - **directory-scoped:** Identity follows your cursor. Enter `~/work` — you're your work self.
-- **ssh isolated:** Each profile gets its own ED25519 keypair and SSH host alias.
+- **ssh & https isolated:** Each profile gets its own ED25519 keypair and securely vaulted Personal Access Token (PAT) for HTTPS cloning.
 - **non-destructive:** Your existing config is safe. GitSetu appends to `~/.gitconfig` and `~/.ssh/config` with clearly marked blocks. Uninstall removes exactly what it added (use `gitsetu teardown --deep` to also strip local repo overrides).
 - **open standard:** No lock-in. GitSetu generates standard Git config and standard SSH config. You can read, edit, or delete what it creates.
 
@@ -126,6 +126,14 @@ export PS1='\[\e[36m\]$(gitsetu prompt)\[\e[0m\] \w $ '
 ```zsh
 PROMPT='%F{cyan}$(gitsetu prompt)%f %~ $ '
 ```
+
+### Native Git Credential Broker (HTTPS / PATs)
+If your corporate firewall blocks SSH (Port 22), you can use GitSetu's pure-Bash **Git Credential Broker** to manage your Personal Access Tokens (PATs) for HTTPS cloning.
+
+Unlike standard Git credential managers that get confused and return 403 Forbidden errors when you have multiple accounts for the same host (e.g., `github.com`), GitSetu intercepts Git's authentication stream. It instantly detects your active directory context and routes your request to the exact token stored securely in the native OS keychain (macOS `security` or Linux `secret-tool`).
+
+To use this, simply provide a **Provider Username** (e.g. GitHub handle) during `gitsetu setup` and enter your PAT when prompted. GitSetu handles the rest with absolute zero-dependency isolation.
+
 ---
 
 ## 05. The "Identity Guard"

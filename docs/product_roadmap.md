@@ -26,6 +26,8 @@ The following critical features and architectural fixes have been successfully i
 - **Single Profile Teardown (`gitsetu remove`)**: Surgically extracts and deletes specific profiles while cleanly regenerating all global configurations.
 - **FIDO2 / YubiKey Hardware Key Bootstrapping**: Automated generation of resident hardware keys (`ed25519-sk`) with safe fallback to software keys if `libfido2` is not supported on the host.
 - **Shell Prompt Integration (`gitsetu prompt`)**: Ultra-fast, sub-millisecond execution for displaying the active identity within terminal `$PS1` variables without spawning subshells.
+- **Custom SSH Key Naming & Paths**: Natively allows users to bypass default key schemas (`id_ed25519_<label>`) and link existing arbitrary keys via absolute path mapping in the global `.gitconfig`.
+- **Git Credential Broker (PAT Management)**: Pure-Bash OS-level broker that intercepts Git HTTPS authentication streams to securely route Personal Access Tokens (PATs) directly from macOS Keychain (`security`) and Linux (`secret-tool`), completely isolating tokens by profile directory.
 
 ---
 
@@ -39,16 +41,7 @@ All Must Have features for the Core Release have been completed! Proceeding to h
 
 ## 🟡 Should Have (High-Value Integrations)
 
-### 1. Custom SSH Key Naming & Paths
-**Problem:** Keys are forced into `~/.ssh/id_ed25519_<label>`.
-**Solution:** Allow linking existing arbitrary keys.
-**Constraint Note:** Because Bash 3.2 lacks associative arrays (`declare -A`), we cannot store profile-to-key mappings in memory. We will strictly use the global `~/.gitconfig` as our state-engine to retrieve custom paths.
-**Difficulty:** Low.
-
-### 2. Git Credential Helper (PAT Management)
-**Problem:** Corporate firewalls block SSH, forcing HTTPS cloning via Personal Access Tokens.
-**Solution:** Extend GitSetu to act as a lightweight, Bash-based credential helper using the OS keychain.
-**Difficulty:** High (Complex macOS Keychain / Windows Credential Manager integration).
+All High-Value Integration features have been completely implemented and verified in the v1.1.0 release!
 
 
 
