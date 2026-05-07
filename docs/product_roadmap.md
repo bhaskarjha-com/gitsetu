@@ -62,10 +62,11 @@ All High-Value Integration features have been completely implemented and verifie
 **Constraint Note:** **Demoted.** The official tool `git-filter-repo` requires Python. Rewriting history in pure Bash 3.2 is wildly dangerous and risks repository corruption. 
 **Difficulty:** Extremely High (Too dangerous for pure Bash).
 
-### 3. Automated SSH-Key Rotation Engine
-**Solution:** Warn users of expiring keys by checking the filesystem modification time.
-**Constraint Note:** macOS (BSD) and Linux (GNU) handle the `stat` command completely differently. Requires robust fallback logic.
-**Difficulty:** Medium.
+### 3. Automated SSH-Key & PAT Rotation Engine (`gitsetu rotate`)
+**Problem:** Stale SSH keys and Personal Access Tokens are security liabilities, but tracking expiration dates manually is prone to error.
+**Solution:** Introduce a `gitsetu rotate` subcommand that automatically checks filesystem modification times (`stat`) and warns users of expiring keys, followed by a clean re-generation process.
+**Constraint Note:** macOS (BSD) and Linux (GNU) handle the `stat` command completely differently. Will require robust fallback logic, and external API integration (for PAT rotation) is highly difficult in pure Bash.
+**Difficulty:** High.
 
 ### 4. Configuration Drift Detection (`gitsetu drift`)
 **Solution:** A background check that diffs the current Git config against GitSetu's expected state.
@@ -88,12 +89,7 @@ All High-Value Integration features have been completely implemented and verifie
 **Solution:** Support a fully headless `gitsetu setup --blueprint <file.json>` command to seed configuration states programmatically.
 **Difficulty:** Medium.
 
-### 9. Key Rotation Utility
-**Problem:** Stale SSH keys and Personal Access Tokens are security liabilities.
-**Solution:** Introduce a `gitsetu rotate` subcommand for automated SSH/PAT key rotation, warning users of expiring keys and cleanly re-generating/uploading new ones.
-**Difficulty:** High (due to lack of robust external API integration in Bash).
-
-### 10. Backup Encryption Agility
+### 9. Backup Encryption Agility
 **Problem:** Users may prefer modern encryption binaries over legacy OpenSSL wrappers.
 **Solution:** Expand the OpenSSL vault logic in `gitsetu backup` to dynamically detect and support `age` or `gpg` encryption depending on host system availability.
 **Difficulty:** Medium.
