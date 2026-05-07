@@ -1,12 +1,10 @@
-# GitSetu Product Roadmap (v1.1 - v2.0)
+# GitSetu Product Roadmap (v2.0)
 
-*Last Updated: Following a rigorous zero-bias architectural audit, deep web research, and evaluation against our absolute "Pure Bash 3.2 / Zero-Dependency" constraint.*
-
-*(Note: Features implemented in v1.0.0, such as Custom Provider Hostnames and SSH Passphrase Support, have been cleared from this backlog).*
+*Last Updated: Following the v1.1.1 Production Readiness Audit, transitioning the backlog into the v2.0 development cycle.*
 
 ---
 
-## ✅ Completed in v1.1.0 (Zero-Trust Security & Trust Baseline)
+## ✅ Completed in v1.1.x (Zero-Trust Security & Baseline)
 
 The following critical features and architectural fixes have been successfully implemented and verified:
 - **Zero-Trust Identity Guard**: Enforces a strict fail-closed boundary on pre-commit; hard blocks commits if configuration is missing or tampered with.
@@ -27,71 +25,65 @@ The following critical features and architectural fixes have been successfully i
 - **FIDO2 / YubiKey Hardware Key Bootstrapping**: Automated generation of resident hardware keys (`ed25519-sk`) with safe fallback to software keys if `libfido2` is not supported on the host.
 - **Shell Prompt Integration (`gitsetu prompt`)**: Ultra-fast, sub-millisecond execution for displaying the active identity within terminal `$PS1` variables without spawning subshells.
 - **Custom SSH Key Naming & Paths**: Natively allows users to bypass default key schemas (`id_ed25519_<label>`) and link existing arbitrary keys via absolute path mapping in the global `.gitconfig`.
-- **Git Credential Broker (PAT Management)**: Pure-Bash OS-level broker that intercepts Git HTTPS authentication streams to securely route Personal Access Tokens (PATs) directly from macOS Keychain (`security`) and Linux (`secret-tool`), completely isolating tokens by profile directory.
-- **Encrypted State Export & Migration (`gitsetu backup`)**: Natively bundles and encrypts GitSetu state using OpenSSL (`-pbkdf2` / `-sha256`), providing a safe Pre-Flight safety net to prevent catastrophic data loss during environment migration.
+- **Git Credential Broker (PAT Management)**: Pure-Bash OS-level broker that intercepts Git HTTPS authentication streams to securely route Personal Access Tokens (PATs) directly from macOS Keychain (`security`) and Linux (`secret-tool`).
+- **Encrypted State Export & Migration (`gitsetu backup`)**: Natively bundles and encrypts GitSetu state using OpenSSL (`-pbkdf2` / `-sha256`), providing a safe Pre-Flight safety net.
 
 ---
 
-## 🔴 Must Have (Target: v1.1 Core Release)
+## 🔴 Must Have (Target: v2.0 Core)
 
-All Must Have features for the Core Release have been completed! Proceeding to high-value integrations.
+### 1. Interactive Headless Expansion
+**Problem:** Mass infrastructure deployments cannot easily navigate interactive TTY setup wizards.
+**Solution:** Support a fully headless `gitsetu setup --blueprint <file.json>` command to seed configuration states programmatically.
+**Difficulty:** Medium.
 
-
+### 2. Strict SSH Agent Sandboxing
+**Problem:** Loading multiple GitSetu SSH keys into the agent causes "Too many authentication failures" against GitHub/GitLab.
+**Solution:** Dynamically enforce `IdentitiesOnly = yes` and carefully unmount/mount specific keys to the active agent socket context.
+**Difficulty:** High.
 
 ---
 
 ## 🟡 Should Have (High-Value Integrations)
 
-All High-Value Integration features have been completely implemented and verified in the v1.1.0 release!
+### 3. Automated SSH-Key & PAT Rotation Engine (`gitsetu rotate`)
+**Problem:** Stale SSH keys and Personal Access Tokens are security liabilities, but tracking expiration dates manually is prone to error.
+**Solution:** Introduce a `gitsetu rotate` subcommand that automatically checks filesystem modification times (`stat`) and warns users of expiring keys, followed by a clean re-generation process.
+**Difficulty:** High (due to lack of robust external API integration in Bash).
 
+### 4. Bash Event Plugin System
+**Problem:** Users want to trigger custom scripts (e.g. notify Slack, change terminal colors) when switching identities.
+**Solution:** Allow users to drop `.sh` scripts into a `plugins/` folder that execute during the `on_profile_switch` lifecycle event.
+**Difficulty:** Medium.
 
+### 5. Configuration Drift Detection (`gitsetu drift`)
+**Problem:** Users might accidentally manually edit `~/.gitconfig` and break GitSetu's routing.
+**Solution:** A background check that diffs the current Git config against GitSetu's expected state and warns the user.
+**Difficulty:** Medium.
+
+### 6. Backup Encryption Agility
+**Problem:** Users may prefer modern encryption binaries over legacy OpenSSL wrappers.
+**Solution:** Expand the OpenSSL vault logic in `gitsetu backup` to dynamically detect and support `age` or `gpg` encryption depending on host system availability.
+**Difficulty:** Medium.
 
 ---
 
 ## 🟢 Might Have (v2.0 Horizon & Experimental)
 
-*Features pushed to the horizon due to extreme Bash 3.2 complexity or reliance on external tools.*
-
-### 1. Scoped Repository Auto-Discovery
-**Problem:** Users want GitSetu to automatically find their misplaced `.git` repositories.
-**Constraint Note:** **Heavily Modified.** Bash 3.2 lacks `globstar` (`**`). Using `find ~ -name ".git"` on macOS will crawl network mounts and Library caches, freezing the system. This feature *must* be scoped to a single user-provided path (e.g., `gitsetu scan ~/dev`).
-**Difficulty:** High.
-
-### 2. Historical Commit Sanitizer (`gitsetu sanitize`)
-**Problem:** Users want to rewrite Git history to remove leaked personal emails.
-**Constraint Note:** **Demoted.** The official tool `git-filter-repo` requires Python. Rewriting history in pure Bash 3.2 is wildly dangerous and risks repository corruption. 
-**Difficulty:** Extremely High (Too dangerous for pure Bash).
-
-### 3. Automated SSH-Key & PAT Rotation Engine (`gitsetu rotate`)
-**Problem:** Stale SSH keys and Personal Access Tokens are security liabilities, but tracking expiration dates manually is prone to error.
-**Solution:** Introduce a `gitsetu rotate` subcommand that automatically checks filesystem modification times (`stat`) and warns users of expiring keys, followed by a clean re-generation process.
-**Constraint Note:** macOS (BSD) and Linux (GNU) handle the `stat` command completely differently. Will require robust fallback logic, and external API integration (for PAT rotation) is highly difficult in pure Bash.
-**Difficulty:** High.
-
-### 4. Configuration Drift Detection (`gitsetu drift`)
-**Solution:** A background check that diffs the current Git config against GitSetu's expected state.
-**Difficulty:** Medium.
-
-### 5. Bash Event Plugin System
-**Solution:** Allow users to drop `.sh` scripts into a plugins folder that execute on `on_profile_switch`.
-**Difficulty:** Medium.
-
-### 6. 1Password SSH & Git Integration
+### 7. 1Password SSH & Git Integration
+**Problem:** Users utilizing 1Password don't want local SSH keys generated at all.
 **Solution:** Detect the 1Password CLI (`op`) and automatically configure Git's `core.sshCommand` to route through their agent socket instead of generating local keys.
 **Difficulty:** Very High.
 
-### 7. Strict SSH Agent Sandboxing
-**Solution:** Dynamically enforce `IdentitiesOnly = yes` and carefully unmount/mount specific keys to the active agent socket context to prevent "Too many authentication failures".
+### 8. Scoped Repository Auto-Discovery
+**Problem:** Users want GitSetu to automatically find their misplaced `.git` repositories.
+**Constraint Note:** Bash 3.2 lacks `globstar` (`**`). Using `find` on macOS will crawl network mounts. This feature *must* be strictly scoped to a single path (e.g., `gitsetu scan ~/dev`).
 **Difficulty:** High.
 
-### 8. Interactive Headless Expansion
-**Problem:** Mass infrastructure deployments cannot easily navigate interactive TTY setup wizards.
-**Solution:** Support a fully headless `gitsetu setup --blueprint <file.json>` command to seed configuration states programmatically.
-**Difficulty:** Medium.
+---
 
-### 9. Backup Encryption Agility
-**Problem:** Users may prefer modern encryption binaries over legacy OpenSSL wrappers.
-**Solution:** Expand the OpenSSL vault logic in `gitsetu backup` to dynamically detect and support `age` or `gpg` encryption depending on host system availability.
-**Difficulty:** Medium.
+## ❌ Out of Scope / Rejected
 
-
+### 9. Historical Commit Sanitizer (`gitsetu sanitize`)
+**Problem:** Users want to rewrite Git history to remove leaked personal emails.
+**Constraint Note:** **Rejected.** The official tool `git-filter-repo` requires Python. Rewriting history in pure Bash 3.2 is wildly dangerous, highly complex, and risks catastrophic repository corruption. This violates our zero-dependency safety constraints.
