@@ -547,19 +547,33 @@ Before we push this build to the public, I need you to conduct a merciless, holi
 *   Audit our Credential Broker. Are Personal Access Tokens (PATs) successfully sandboxed per-profile without bleeding into the global Git credential helper context?
 *   Review our `gitsetu guard` pre-commit hook. Is the subversion detection logic flawless? Does it allow local repository hooks (Husky, Lefthook) to pass-through seamlessly?
 
-**4. User Experience & Friction (The DX Assessment)**
+**4. Performance & Execution Latency**
+*   Are subshells avoided wherever possible? Specifically analyze `gitsetu prompt` — does it truly execute in sub-millisecond time, or does it drag down terminal load times?
+*   Is the JSON/config parsing efficient? Are there any unnecessary disk I/O operations blocking the critical path during profile switching?
+
+**5. Platform Portability & Distribution Pipeline**
+*   Does the installation pipeline (`install.sh` / `uninstall.sh`) correctly navigate OS differences? (e.g., creating Bash wrappers on Windows MSYS2 instead of brittle symlinks).
+*   Does `detect_os` correctly normalize paths across environments? Is the `vboxsf` CRLF self-healing logic foolproof?
+
+**6. User Experience & Friction (The DX Assessment)**
 *   Is the interactive TTY prompt actually beautiful and completely blind (`stty -echo`) when handling PATs?
 *   Is the FIDO2 hardware token logic gracefully degrading to software keys when `libfido2` is absent?
 *   Read `README.md` and `docs/TROUBLESHOOTING.md`. Do they directly map to actual error outputs the user will see? Are they enterprise-ready?
 
-**5. Testing & Quality Assurance**
-*   Run the suite: `make test`.
-*   We have exactly 123 tests across 18 test files running in parallel. Is our coverage merely a facade, or are we actively testing negative edge cases (e.g., malformed FQDNs, missing configuration blocks, locked PIDs)?
+**7. CI/CD Pipeline & Supply Chain Security**
+*   Are GitHub Actions properly matrixed across Linux, macOS, and Windows?
+*   Are we pinning Action versions to strict cryptographic SHAs?
+*   Is the `Makefile` strictly enforcing formatting and linting (`shellcheck`) boundaries?
+
+**8. Code Maintainability, Community, & QA**
+*   Are the 123 tests running concurrently actually catching negative edge cases, or are they fragile?
+*   Are variables strictly scoped (`local`), quoted, and conventionally named across the codebase?
+*   Are `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, and GitHub Issue Templates standard-compliant for public open-source consumption?
 
 ### Deliverable:
 Produce a `go_nogo_audit.md` artifact containing:
 1.  **Executive Summary**: Your overall ruling (GO or NO-GO) for the v1.1.1 release.
-2.  **Dimension Grades**: Give a letter grade (A-F) for Architecture, Security, Concurrency, DX, and QA.
+2.  **Dimension Grades**: Give a letter grade (A-F) for Architecture, Security, Concurrency, Performance, Portability, DX, CI/CD, and QA.
 3.  **Critical Findings**: Any blockers or edge cases discovered.
 4.  **Final Polish Roadmap**: If there are non-blockers, what should we immediately patch post-release?
 ```
