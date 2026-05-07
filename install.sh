@@ -37,8 +37,17 @@ chmod +x "$SHARE_DIR/gitsetu"
 # 2. Setup symlinks
 echo -e "  Configuring executables in ${CYAN}$BIN_DIR${RESET}..."
 mkdir -p "$BIN_DIR"
-ln -sf "$SHARE_DIR/gitsetu" "$BIN_DIR/gitsetu"
-ln -sf "$SHARE_DIR/gitsetu" "$BIN_DIR/git-setu"
+if [[ "$OSTYPE" == "msys"* ]] || [[ "$OSTYPE" == "cygwin"* ]]; then
+    # MSYS2/Cygwin often fall back to copying files instead of symlinking if Windows Developer Mode
+    # is off. A copied gitsetu binary fails to locate its lib/ directory. Use a wrapper instead.
+    echo '#!/usr/bin/env bash' > "$BIN_DIR/gitsetu"
+    echo "exec \"$SHARE_DIR/gitsetu\" \"\$@\"" >> "$BIN_DIR/gitsetu"
+    chmod +x "$BIN_DIR/gitsetu"
+    cp "$BIN_DIR/gitsetu" "$BIN_DIR/git-setu"
+else
+    ln -sf "$SHARE_DIR/gitsetu" "$BIN_DIR/gitsetu"
+    ln -sf "$SHARE_DIR/gitsetu" "$BIN_DIR/git-setu"
+fi
 
 echo -e "\n  ${GREEN}✓ GitSetu successfully installed!${RESET}"
 

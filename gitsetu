@@ -37,8 +37,8 @@ resolve_script_dir() {
         source="$0"
     fi
 
-    # If still relative, make it absolute
-    if [[ "$source" != /* ]]; then
+    # If still relative, make it absolute (handles Unix / and Windows C:/ or C:\)
+    if [[ "$source" != /* ]] && [[ "$source" != [a-zA-Z]:/* ]] && [[ "$source" != [a-zA-Z]:\\* ]]; then
         source="$(pwd)/$source"
     fi
 
