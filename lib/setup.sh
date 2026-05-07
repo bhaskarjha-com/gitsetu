@@ -399,6 +399,16 @@ cmd_profile() {
                     continue # Immediately retry acquiring (only the process that successfully mv'd gets here without sleep)
                 fi
             fi
+        else
+            # Phantom deadlock prover. Process might have been kill -9'd exactly between mkdir and echo $$.
+            # Wait 1 second to ensure it's not just a microsecond race from a living process.
+            sleep 1
+            if [[ ! -f "$lock_dir/pid" ]]; then
+                if mv "$lock_dir" "${lock_dir}.stale.$$" 2>/dev/null; then
+                    rm -rf "${lock_dir}.stale.$$"
+                    continue
+                fi
+            fi
         fi
         
         retry=$((retry+1))

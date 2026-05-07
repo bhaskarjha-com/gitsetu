@@ -147,6 +147,10 @@ array_contains() {
 remove_profile_at_index() {
     local target_idx="$1"
     
+    if [[ "$target_idx" -lt 0 ]] || [[ "$target_idx" -ge "$PROFILE_COUNT" ]]; then
+        return 1
+    fi
+    
     local new_labels=()
     local new_names=()
     local new_emails=()
@@ -177,4 +181,5 @@ remove_profile_at_index() {
     PROFILE_KEYS=("${new_keys[@]}")
     
     PROFILE_COUNT=$((PROFILE_COUNT - 1))
+    return 0
 }

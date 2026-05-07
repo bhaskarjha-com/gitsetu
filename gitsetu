@@ -190,6 +190,16 @@ cmd_status() {
         local ssh_cmd
         ssh_cmd=$(git config core.sshCommand 2>/dev/null || echo "(default)")
         printf >&2 '  %b│%b  SSH:   %b%s%b\n' "$DIM" "$RESET" "$GREEN" "${ssh_cmd}" "$RESET"
+        
+        # Check for Pre-Commit Guard Subversion
+        local local_hooks
+        local_hooks=$(git config --local core.hooksPath 2>/dev/null || true)
+        if [[ -n "$local_hooks" ]]; then
+            printf >&2 '  %b│%b\n' "$DIM" "$RESET"
+            printf >&2 '  %b│%b  %b[!] SECURITY WARNING:%b\n' "$DIM" "$RESET" "$RED" "$RESET"
+            printf >&2 '  %b│%b  This repository locally overrides core.hooksPath (%s).\n' "$DIM" "$RESET" "$local_hooks"
+            printf >&2 '  %b│%b  The global GitSetu identity guard is completely bypassed!\n' "$DIM" "$RESET"
+        fi
     fi
     printf >&2 '  %b└───────────────────────────────────────────────┘%b\n\n' "$DIM" "$RESET"
 

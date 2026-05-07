@@ -16,7 +16,7 @@ run_doctor() {
     
     local i
     # Iterate backwards so more specific (later) profiles win
-    for i in $(seq $((PROFILE_COUNT - 1)) -1 1 2>/dev/null || true); do
+    for (( i=PROFILE_COUNT-1; i>=1; i-- )); do
         local dir="${PROFILE_DIRS[$i]}"
         if [[ -n "$dir" ]] && [[ "$current_dir" == "$dir"* ]]; then
             active_profile="${PROFILE_LABELS[$i]}"

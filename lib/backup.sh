@@ -118,6 +118,7 @@ cmd_backup() {
     # Tar the state safely
     local temp_tar
     temp_tar=$(mktemp)
+    GITSETU_CLEANUP_FILES+=("$temp_tar")
     
     # Bundle relative paths
     local tar_args=()
@@ -191,6 +192,7 @@ cmd_restore() {
 
     local temp_tar
     temp_tar=$(mktemp)
+    GITSETU_CLEANUP_FILES+=("$temp_tar")
 
     export GITSETU_VAULT_PASS="$password"
     if ! openssl enc "${ssl_args[@]}" -in "$in_file" -out "$temp_tar" -pass env:GITSETU_VAULT_PASS 2>/dev/null; then
@@ -205,7 +207,7 @@ cmd_restore() {
     if [[ -d "$GITSETU_CONFIG_DIR" ]] || [[ -d "$GITSETU_SSH_DIR" ]]; then
         print_warning "Active state detected. Creating pre-restore safety backup..."
         export GITSETU_TEST_VAULT_PASS="safety_net"
-        cmd_backup "gitsetu_vault_pre_restore_$(date +%Y%m%d_%H%M%S).tar.gz.enc" >/dev/null 2>&1 || true
+        cmd_backup "gitsetu_vault_pre_restore_$(date +%Y%m%d_%H%M%S).tar.gz.enc" >/dev/null 2>&1 || return 1
         unset GITSETU_TEST_VAULT_PASS
         
         # Teardown current global configs to avoid duplicate block drift
