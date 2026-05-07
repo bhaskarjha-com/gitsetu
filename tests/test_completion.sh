@@ -12,8 +12,10 @@ complete() {
 export -f complete
 
 test_completion_sources() {
-    local script="$(dirname "${BASH_SOURCE[0]}")/../lib/completion.sh"
+    local script
+    script="$(dirname "${BASH_SOURCE[0]}")/../lib/completion.sh"
     # Sourcing it should not fail
+    # shellcheck disable=SC1090
     source "$script"
     # Function _gitsetu should be defined
     if ! declare -F _gitsetu >/dev/null; then

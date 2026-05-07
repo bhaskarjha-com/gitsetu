@@ -177,6 +177,7 @@ teardown_deep() {
         
         if [[ -n "$dir" ]] && [[ -d "$dir" ]]; then
             # Prevent catastrophic global traverse DoS
+            # shellcheck disable=SC2088
             if [[ "$dir" == "/" || "$dir" == "$HOME" || "$dir" == "$HOME/" || "$dir" == "~" || "$dir" == "~/" ]]; then
                 print_warning "Skipping deep cleanup for '$dir' to prevent Denial of Service traversal."
                 continue

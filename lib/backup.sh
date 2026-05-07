@@ -148,8 +148,8 @@ cmd_backup() {
     fi
 
     local ssl_args=("-aes-256-cbc" "-salt")
-    # shellcheck disable=SC2046
-    ssl_args+=($(get_openssl_args))
+    read -r -a extra_args <<< "$(get_openssl_args)"
+    ssl_args+=("${extra_args[@]}")
 
     export GITSETU_VAULT_PASS="$password"
     if openssl enc "${ssl_args[@]}" -in "$temp_tar" -out "$out_file" -pass env:GITSETU_VAULT_PASS 2>/dev/null; then
@@ -186,8 +186,8 @@ cmd_restore() {
     fi
 
     local ssl_args=("-d" "-aes-256-cbc" "-salt")
-    # shellcheck disable=SC2046
-    ssl_args+=($(get_openssl_args))
+    read -r -a extra_args <<< "$(get_openssl_args)"
+    ssl_args+=("${extra_args[@]}")
 
     local temp_tar
     temp_tar=$(mktemp)
@@ -232,7 +232,7 @@ cmd_restore() {
         setup_hooks
         
         if [[ -f "$GITSETU_PROFILES_CONF" ]]; then
-            while IFS=: read -r label email dir provider sign_commits key_path || [[ -n "$label" ]]; do
+            while IFS=: read -r label email _dir provider sign_commits key_path || [[ -n "$label" ]]; do
                 [[ -z "$label" ]] || [[ "$label" == "#"* ]] && continue
                 write_profile_gitconfig "$label" "$email" "$sign_commits" "$key_path"
                 setup_ssh_config "$label" "$provider" "$key_path"

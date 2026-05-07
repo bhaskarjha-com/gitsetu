@@ -137,7 +137,7 @@ test_cmd_backup_restore() {
     assert_equals 0 $? "second cmd_restore runs successfully" || return 1
     
     local pre_restore_backups
-    pre_restore_backups=$(ls gitsetu_vault_pre_restore_*.enc 2>/dev/null | wc -l)
+    pre_restore_backups=$(find . -maxdepth 1 -name "gitsetu_vault_pre_restore_*.enc" 2>/dev/null | wc -l)
     if [[ "$pre_restore_backups" -eq 0 ]]; then
         echo "Failed: Pre-flight safety net vault was not created."
         return 1
