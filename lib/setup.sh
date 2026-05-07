@@ -404,10 +404,10 @@ cmd_profile() {
         else
             # Phantom deadlock prover: the lock dir exists but has no PID file.
             # This can happen legitimately for a microsecond while a healthy process
-            # is between mkdir and echo $$. Only reap after 3 consecutive observations
+            # is between mkdir and echo $$. Only reap after 50 consecutive observations
             # (each separated by the 0.1s retry sleep) to definitively prove it's dead.
             no_pid_count=$((no_pid_count + 1))
-            if [[ "$no_pid_count" -ge 3 ]]; then
+            if [[ "$no_pid_count" -ge 50 ]]; then
                 if mv "$lock_dir" "${lock_dir}.stale.$$" 2>/dev/null; then
                     rm -rf "${lock_dir}.stale.$$"
                     no_pid_count=0

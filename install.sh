@@ -8,7 +8,7 @@
 
 set -euo pipefail
 
-REPO_URL="${GITSETU_REPO_URL:-https://github.com/bhaskarjha-com/gideon.git}"
+REPO_URL="${GITSETU_REPO_URL:-https://github.com/bhaskarjha-com/gitsetu.git}"
 SHARE_DIR="$HOME/.local/share/gitsetu"
 BIN_DIR="$HOME/.local/bin"
 

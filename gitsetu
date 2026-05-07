@@ -60,6 +60,50 @@ resolve_script_dir() {
 GITSETU_SCRIPT_DIR=$(resolve_script_dir | tr -d '\r')
 
 # ------------------------------------------------------------------------------
+# cmd_prompt — Zero-latency profile detection for PS1 integration
+# ------------------------------------------------------------------------------
+cmd_prompt() {
+    if [[ ! -f "$GITSETU_PROFILES_CONF" ]]; then
+        return 0
+    fi
+
+    # Normalize PWD like we do for dirs
+    local current_pwd="${PWD%/}"
+    
+    local matched_profile=""
+    local max_len=0
+
+    # Prefix match without subshells
+    while IFS=: read -r label email dir provider sign_commits key_path || [[ -n "$label" ]]; do
+        [[ -z "$dir" ]] && continue
+        
+        # Check if PWD starts with the profile dir
+        if [[ "$current_pwd/" == "$dir/"* ]] || [[ "$current_pwd" == "$dir" ]]; then
+            # Longest match wins
+            local dir_len=${#dir}
+            if [[ "$dir_len" -gt "$max_len" ]]; then
+                max_len=$dir_len
+                matched_profile="$label"
+            fi
+        fi
+        done < "$GITSETU_PROFILES_CONF"
+
+    if [[ -n "$matched_profile" ]]; then
+        echo "$matched_profile"
+    fi
+}
+
+# Fast-path for prompt to avoid 14 subshell forks (95ms latency penalty)
+if [[ "${1:-}" == "prompt" ]]; then
+    if [[ -z "${GITSETU_PROFILES_CONF:-}" ]]; then
+        GITSETU_PROFILES_CONF="${XDG_CONFIG_HOME:-$HOME/.config}/gitsetu/profiles.conf"
+    fi
+    shift
+    cmd_prompt "$@"
+    exit $?
+fi
+
+# ------------------------------------------------------------------------------
 # Source all library modules
 # Strip \r from sourced files for vboxsf compatibility
 # ------------------------------------------------------------------------------
@@ -505,39 +549,6 @@ cmd_remove() {
 
 
 # ------------------------------------------------------------------------------
-# cmd_prompt — Zero-latency profile detection for PS1 integration
-# ------------------------------------------------------------------------------
-cmd_prompt() {
-    if [[ ! -f "$GITSETU_PROFILES_CONF" ]]; then
-        return 0
-    fi
-
-    # Normalize PWD like we do for dirs
-    local current_pwd="${PWD%/}"
-    
-    local matched_profile=""
-    local max_len=0
-
-    # Prefix match without subshells
-    while IFS=: read -r label email dir provider sign_commits key_path || [[ -n "$label" ]]; do
-        [[ -z "$dir" ]] && continue
-        
-        # Check if PWD starts with the profile dir
-        if [[ "$current_pwd/" == "$dir/"* ]] || [[ "$current_pwd" == "$dir" ]]; then
-            # Longest match wins
-            local dir_len=${#dir}
-            if [[ "$dir_len" -gt "$max_len" ]]; then
-                max_len=$dir_len
-                matched_profile="$label"
-            fi
-        fi
-        done < "$GITSETU_PROFILES_CONF"
-
-    if [[ -n "$matched_profile" ]]; then
-        echo "$matched_profile"
-    fi
-}
-
 # ------------------------------------------------------------------------------
 # cmd_credential — Git Credential Helper Broker
 # ------------------------------------------------------------------------------
@@ -671,9 +682,6 @@ main() {
             ;;
         profile)
             cmd_profile "$@"
-            ;;
-        prompt)
-            cmd_prompt "$@"
             ;;
         credential)
             cmd_credential "$@"
