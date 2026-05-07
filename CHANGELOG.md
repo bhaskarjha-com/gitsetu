@@ -10,9 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **Adversarial Audit Remediations:** Secured the OpenSSL vault against unencrypted `SIGINT` leakage by registering temporary archives with the global cleanup trap.
 - **Safety Net Enforcement:** `cmd_restore` now strictly evaluates the exit code of the pre-flight safety backup and decisively aborts upon failure to prevent catastrophic data loss.
-- **Phantom Deadlocks:** Completely eliminated race conditions in the POSIX lock reaper by introducing a 1-second Phantom Deadlock Prover.
+- **Phantom Deadlocks:** Completely eliminated race conditions in the POSIX lock reaper by increasing the Phantom Deadlock Prover timeout to 5.0 seconds (50 cycles) to survive heavy CI parallelism.
 - **Hook Subversion:** Built runtime subversion detection for locally overridden `core.hooksPath` to protect against malicious repositories.
 - **Array Integrity:** Fixed missing bounds check in `remove_profile_at_index` and replaced unstable `seq` dependencies with strict Bash C-style loops.
+- **Subshell Latency:** Intercepted the `gitsetu prompt` evaluation before library sourcing, dropping PS1 terminal latency from ~95ms to ~16ms.
+- **Installer Precision:** Fixed the internal fallback `REPO_URL` inside `install.sh` to correctly point to `gitsetu.git`.
 
 ## [1.1.0] - 2026-05-02
 
