@@ -49,7 +49,7 @@ test_atomic_headless_add() {
     gitsetu_bin="$(dirname "${BASH_SOURCE[0]}")/../gitsetu"
     local i
     for i in {1..5}; do
-        "$gitsetu_bin" profile add "user${i}" --name="User ${i}" --email="user${i}@test.com" --dir="$HOME/user${i}" >/dev/null 2>&1 &
+        bash "$gitsetu_bin" profile add "user${i}" --name="User ${i}" --email="user${i}@test.com" --dir="$HOME/user${i}" >/dev/null 2>&1 &
     done
     
     wait
@@ -84,7 +84,7 @@ test_stale_lock_recovery() {
     gitsetu_bin="$(dirname "${BASH_SOURCE[0]}")/../gitsetu"
     
     local output
-    output=$("$gitsetu_bin" profile add "stale-test" --name="Stale" --email="stale@test.com" --dir="$HOME/stale" 2>&1 || echo "FAILED")
+    output=$(bash "$gitsetu_bin" profile add "stale-test" --name="Stale" --email="stale@test.com" --dir="$HOME/stale" 2>&1 || echo "FAILED")
     
     assert_not_contains "$output" "FAILED" "gitsetu recovered from stale lock and succeeded" || return 1
     assert_file_contains "$GITSETU_PROFILES_CONF" "stale-test::" "stale-test profile added successfully" || return 1
