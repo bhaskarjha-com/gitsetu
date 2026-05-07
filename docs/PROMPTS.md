@@ -30,19 +30,19 @@
 ## 1. Full Codebase Audit
 
 ```
-I have a bash CLI project called "gitsetu" at /media/sf_dev/pro/gitsetu/
+I have a bash CLI project called "gitsetu" at /media/sf_dev/pro/gideon/
 
 Before doing anything, read these files to understand the project:
-- /media/sf_dev/pro/gitsetu/README.md
-- /media/sf_dev/pro/gitsetu/docs/ARCHITECTURE.md
-- /media/sf_dev/pro/gitsetu/lib/core.sh (for constants and state)
+- /media/sf_dev/pro/gideon/README.md
+- /media/sf_dev/pro/gideon/docs/ARCHITECTURE.md
+- /media/sf_dev/pro/gideon/lib/core.sh (for constants and state)
 
 Then perform a thorough technical audit:
 
-1. Run all tests: `for f in /media/sf_dev/pro/gitsetu/tests/test_*.sh; do bash "$f" 2>/dev/null; done`
-2. Run ShellCheck (if available): `shellcheck /media/sf_dev/pro/gitsetu/gitsetu /media/sf_dev/pro/gitsetu/lib/*.sh`
+1. Run all tests: `for f in /media/sf_dev/pro/gideon/tests/test_*.sh; do bash "$f" 2>/dev/null; done`
+2. Run ShellCheck (if available): `shellcheck /media/sf_dev/pro/gideon/gitsetu /media/sf_dev/pro/gideon/lib/*.sh`
 3. Check for bash 4+ violations (this project MUST be bash 3.2 compatible):
-   `grep -rn 'declare -A\|mapfile\|readarray\|\${.*,,\}\|\${.*\^\^\}' /media/sf_dev/pro/gitsetu/lib/ /media/sf_dev/pro/gitsetu/gitsetu`
+   `grep -rn 'declare -A\|mapfile\|readarray\|\${.*,,\}\|\${.*\^\^\}' /media/sf_dev/pro/gideon/lib/ /media/sf_dev/pro/gideon/gitsetu`
 4. Check for unquoted variables and security issues
 5. Verify all functions have documentation comments
 6. Cross-check README test count matches actual test count
@@ -56,7 +56,7 @@ Standards:
 - Managed block markers for idempotent config file updates
 
 Create an audit report artifact with: findings, severity, and specific fix recommendations.
-Use the run_command tool with Cwd=/media/sf_dev/pro/niyantra for shell commands.
+Use the run_command tool with Cwd=/media/sf_dev/pro/gideon for shell commands.
 ```
 
 ---
@@ -64,13 +64,13 @@ Use the run_command tool with Cwd=/media/sf_dev/pro/niyantra for shell commands.
 ## 2. Add a New Feature
 
 ```
-I have a bash CLI project called "gitsetu" at /media/sf_dev/pro/gitsetu/
+I have a bash CLI project called "gitsetu" at /media/sf_dev/pro/gideon/
 
 Before doing anything, read these files IN ORDER to understand the project:
-1. /media/sf_dev/pro/gitsetu/README.md (what the tool does)
-2. /media/sf_dev/pro/gitsetu/docs/ARCHITECTURE.md (how it's built)
-3. /media/sf_dev/pro/gitsetu/lib/core.sh (constants, state arrays)
-4. /media/sf_dev/pro/gitsetu/gitsetu (main script — note the CRLF self-healing block and gitsetu_source pattern)
+1. /media/sf_dev/pro/gideon/README.md (what the tool does)
+2. /media/sf_dev/pro/gideon/docs/ARCHITECTURE.md (how it's built)
+3. /media/sf_dev/pro/gideon/lib/core.sh (constants, state arrays)
+4. /media/sf_dev/pro/gideon/gitsetu (main script — note the CRLF self-healing block and gitsetu_source pattern)
 
 I want to add this feature: [DESCRIBE YOUR FEATURE HERE]
 
@@ -84,12 +84,12 @@ Rules you MUST follow:
 
 After implementing:
 1. Write tests in tests/test_<module>.sh following the existing pattern (see tests/helpers.sh)
-2. Run all tests: `for f in /media/sf_dev/pro/gitsetu/tests/test_*.sh; do bash "$f" 2>/dev/null; done`
+2. Run all tests: `for f in /media/sf_dev/pro/gideon/tests/test_*.sh; do bash "$f" 2>/dev/null; done`
 3. Update README.md (CLI reference table, project structure if new files)
 4. Update docs/ARCHITECTURE.md if adding new modules
 5. Update CHANGELOG.md
 
-Use the run_command tool with Cwd=/media/sf_dev/pro/niyantra for shell commands.
+Use the run_command tool with Cwd=/media/sf_dev/pro/gideon for shell commands.
 ```
 
 ---
@@ -97,11 +97,11 @@ Use the run_command tool with Cwd=/media/sf_dev/pro/niyantra for shell commands.
 ## 3. Fix a Bug
 
 ```
-I have a bash CLI project called "gitsetu" at /media/sf_dev/pro/gitsetu/
+I have a bash CLI project called "gitsetu" at /media/sf_dev/pro/gideon/
 
 Read these files to understand the project:
-- /media/sf_dev/pro/gitsetu/docs/ARCHITECTURE.md
-- /media/sf_dev/pro/gitsetu/lib/core.sh
+- /media/sf_dev/pro/gideon/docs/ARCHITECTURE.md
+- /media/sf_dev/pro/gideon/lib/core.sh
 
 The bug is: [DESCRIBE THE BUG, HOW TO REPRODUCE, EXPECTED vs ACTUAL BEHAVIOR]
 
@@ -110,7 +110,7 @@ Follow this process:
 2. Write a FAILING test that reproduces the bug in tests/test_<module>.sh
 3. Fix the bug in the lib file
 4. Run the test to confirm it passes
-5. Run ALL tests to confirm no regressions: `for f in /media/sf_dev/pro/gitsetu/tests/test_*.sh; do bash "$f" 2>/dev/null; done`
+5. Run ALL tests to confirm no regressions: `for f in /media/sf_dev/pro/gideon/tests/test_*.sh; do bash "$f" 2>/dev/null; done`
 6. Update CHANGELOG.md with the fix
 
 Rules:
@@ -118,7 +118,7 @@ Rules:
 - All variables quoted
 - Don't break existing tests
 
-Use the run_command tool with Cwd=/media/sf_dev/pro/niyantra for shell commands.
+Use the run_command tool with Cwd=/media/sf_dev/pro/gideon for shell commands.
 ```
 
 ---
@@ -126,14 +126,14 @@ Use the run_command tool with Cwd=/media/sf_dev/pro/niyantra for shell commands.
 ## 4. Add Tests
 
 ```
-I have a bash CLI project called "gitsetu" at /media/sf_dev/pro/gitsetu/
+I have a bash CLI project called "gitsetu" at /media/sf_dev/pro/gideon/
 
 Read these files to understand the testing approach:
-- /media/sf_dev/pro/gitsetu/tests/helpers.sh (test framework: assertions, isolated HOME)
-- /media/sf_dev/pro/gitsetu/tests/test_validate.sh (example of well-written tests)
-- /media/sf_dev/pro/gitsetu/tests/test_integration.sh (example of end-to-end tests)
+- /media/sf_dev/pro/gideon/tests/helpers.sh (test framework: assertions, isolated HOME)
+- /media/sf_dev/pro/gideon/tests/test_validate.sh (example of well-written tests)
+- /media/sf_dev/pro/gideon/tests/test_integration.sh (example of end-to-end tests)
 
-Current coverage: 74 tests across 7 test files. I want to improve coverage.
+Current coverage: 123 tests across 18 test files. I want to improve coverage.
 
 Identify gaps by:
 1. Reading each lib/*.sh file and listing functions without corresponding tests
@@ -147,10 +147,10 @@ Then write new tests following these patterns:
 - Use assert_* helpers: assert_equals, assert_contains, assert_file_exists, assert_file_contains, assert_exit_code
 - Tests MUST NOT touch real ~/.ssh or ~/.gitconfig
 
-Run all tests after adding: `for f in /media/sf_dev/pro/gitsetu/tests/test_*.sh; do bash "$f" 2>/dev/null; done`
+Run all tests after adding: `for f in /media/sf_dev/pro/gideon/tests/test_*.sh; do bash "$f" 2>/dev/null; done`
 Update README.md test count.
 
-Use the run_command tool with Cwd=/media/sf_dev/pro/niyantra for shell commands.
+Use the run_command tool with Cwd=/media/sf_dev/pro/gideon for shell commands.
 ```
 
 ---
@@ -158,19 +158,19 @@ Use the run_command tool with Cwd=/media/sf_dev/pro/niyantra for shell commands.
 ## 5. Improve Documentation
 
 ```
-I have a bash CLI project called "gitsetu" at /media/sf_dev/pro/gitsetu/
+I have a bash CLI project called "gitsetu" at /media/sf_dev/pro/gideon/
 
 Read ALL documentation files:
-- /media/sf_dev/pro/gitsetu/README.md
-- /media/sf_dev/pro/gitsetu/docs/ARCHITECTURE.md
-- /media/sf_dev/pro/gitsetu/docs/TROUBLESHOOTING.md
-- /media/sf_dev/pro/gitsetu/docs/VISION.md
-- /media/sf_dev/pro/gitsetu/CONTRIBUTING.md
-- /media/sf_dev/pro/gitsetu/CHANGELOG.md
+- /media/sf_dev/pro/gideon/README.md
+- /media/sf_dev/pro/gideon/docs/ARCHITECTURE.md
+- /media/sf_dev/pro/gideon/docs/TROUBLESHOOTING.md
+- /media/sf_dev/pro/gideon/docs/VISION.md
+- /media/sf_dev/pro/gideon/CONTRIBUTING.md
+- /media/sf_dev/pro/gideon/CHANGELOG.md
 
 Also read the actual code to verify accuracy:
-- /media/sf_dev/pro/gitsetu/gitsetu (subcommands, help text)
-- /media/sf_dev/pro/gitsetu/lib/core.sh (version, constants)
+- /media/sf_dev/pro/gideon/gitsetu (subcommands, help text)
+- /media/sf_dev/pro/gideon/lib/core.sh (version, constants)
 
 Cross-check and fix:
 1. Test count in README matches actual (run tests to count)
@@ -189,7 +189,7 @@ Also assess quality:
 
 Create an artifact with all findings and fix everything in-place.
 
-Use the run_command tool with Cwd=/media/sf_dev/pro/niyantra for shell commands.
+Use the run_command tool with Cwd=/media/sf_dev/pro/gideon for shell commands.
 ```
 
 ---
@@ -197,24 +197,24 @@ Use the run_command tool with Cwd=/media/sf_dev/pro/niyantra for shell commands.
 ## 6. Prepare a Release
 
 ```
-I have a bash CLI project called "gitsetu" at /media/sf_dev/pro/gitsetu/
+I have a bash CLI project called "gitsetu" at /media/sf_dev/pro/gideon/
 
 Read these files first:
-- /media/sf_dev/pro/gitsetu/lib/core.sh (current GITSETU_VERSION)
-- /media/sf_dev/pro/gitsetu/CHANGELOG.md (current release notes)
+- /media/sf_dev/pro/gideon/lib/core.sh (current GITSETU_VERSION)
+- /media/sf_dev/pro/gideon/CHANGELOG.md (current release notes)
 
 I want to prepare release v[VERSION]. Execute this checklist:
 
 1. Update GITSETU_VERSION in lib/core.sh to the new version
 2. Update CHANGELOG.md with all changes since last release
-3. Run full test suite: `for f in /media/sf_dev/pro/gitsetu/tests/test_*.sh; do bash "$f" 2>/dev/null; done`
-4. Run ShellCheck if available: `shellcheck /media/sf_dev/pro/gitsetu/gitsetu /media/sf_dev/pro/gitsetu/lib/*.sh`
-5. Verify `bash /media/sf_dev/pro/gitsetu/gitsetu --version` shows new version
+3. Run full test suite: `for f in /media/sf_dev/pro/gideon/tests/test_*.sh; do bash "$f" 2>/dev/null; done`
+4. Run ShellCheck if available: `shellcheck /media/sf_dev/pro/gideon/gitsetu /media/sf_dev/pro/gideon/lib/*.sh`
+5. Verify `bash /media/sf_dev/pro/gideon/gitsetu --version` shows new version
 6. Update README.md test count if tests were added
 7. Verify all docs are current (cross-check version references)
 8. Show me the git commands to tag and push the release
 
-Use the run_command tool with Cwd=/media/sf_dev/pro/niyantra for shell commands.
+Use the run_command tool with Cwd=/media/sf_dev/pro/gideon for shell commands.
 ```
 
 ---
@@ -222,14 +222,14 @@ Use the run_command tool with Cwd=/media/sf_dev/pro/niyantra for shell commands.
 ## 7. Security Audit
 
 ```
-I have a bash CLI project called "gitsetu" at /media/sf_dev/pro/gitsetu/
+I have a bash CLI project called "gitsetu" at /media/sf_dev/pro/gideon/
 It generates SSH keys and modifies ~/.gitconfig and ~/.ssh/config.
 
 Read the code:
-- /media/sf_dev/pro/gitsetu/lib/ssh.sh (SSH key generation)
-- /media/sf_dev/pro/gitsetu/lib/gitconfig.sh (config file writing)
-- /media/sf_dev/pro/gitsetu/lib/guard.sh (pre-commit hook — runs on every commit)
-- /media/sf_dev/pro/gitsetu/lib/backup.sh (backup management)
+- /media/sf_dev/pro/gideon/lib/ssh.sh (SSH key generation)
+- /media/sf_dev/pro/gideon/lib/gitconfig.sh (config file writing)
+- /media/sf_dev/pro/gideon/lib/guard.sh (pre-commit hook — runs on every commit)
+- /media/sf_dev/pro/gideon/lib/backup.sh (backup management)
 
 Audit for:
 1. File permissions: Are SSH keys created with chmod 600? Is ~/.ssh/config 600?
@@ -242,13 +242,13 @@ Audit for:
 8. Race conditions: Any TOCTOU issues in file operations?
 
 Also check:
-- `grep -rn 'eval\|exec ' /media/sf_dev/pro/gitsetu/lib/ /media/sf_dev/pro/gitsetu/gitsetu`
-- `grep -rn 'curl\|wget\|nc ' /media/sf_dev/pro/gitsetu/lib/`
-- `grep -rn 'chmod' /media/sf_dev/pro/gitsetu/lib/`
+- `grep -rn 'eval\|exec ' /media/sf_dev/pro/gideon/lib/ /media/sf_dev/pro/gideon/gitsetu`
+- `grep -rn 'curl\|wget\|nc ' /media/sf_dev/pro/gideon/lib/`
+- `grep -rn 'chmod' /media/sf_dev/pro/gideon/lib/`
 
 Create a security audit report with severity ratings and remediation steps.
 
-Use the run_command tool with Cwd=/media/sf_dev/pro/niyantra for shell commands.
+Use the run_command tool with Cwd=/media/sf_dev/pro/gideon for shell commands.
 ```
 
 ---
@@ -256,11 +256,11 @@ Use the run_command tool with Cwd=/media/sf_dev/pro/niyantra for shell commands.
 ## 8. Add New Platform Support
 
 ```
-I have a bash CLI project called "gitsetu" at /media/sf_dev/pro/gitsetu/
+I have a bash CLI project called "gitsetu" at /media/sf_dev/pro/gideon/
 
 Read these files:
-- /media/sf_dev/pro/gitsetu/lib/platform.sh (current OS detection and path normalization)
-- /media/sf_dev/pro/gitsetu/docs/ARCHITECTURE.md (platform design)
+- /media/sf_dev/pro/gideon/lib/platform.sh (current OS detection and path normalization)
+- /media/sf_dev/pro/gideon/docs/ARCHITECTURE.md (platform design)
 
 I want to add support for: [PLATFORM NAME — e.g., "FreeBSD", "Docker containers", "Codespaces"]
 
@@ -273,11 +273,11 @@ Steps:
 6. Add tests to tests/test_platform.sh
 7. Update README.md platform support table
 8. Add platform section to docs/TROUBLESHOOTING.md
-9. Run all tests: `for f in /media/sf_dev/pro/gitsetu/tests/test_*.sh; do bash "$f" 2>/dev/null; done`
+9. Run all tests: `for f in /media/sf_dev/pro/gideon/tests/test_*.sh; do bash "$f" 2>/dev/null; done`
 
 Rules: Bash 3.2 compatible, all variables quoted, test changes don't break other platforms.
 
-Use the run_command tool with Cwd=/media/sf_dev/pro/niyantra for shell commands.
+Use the run_command tool with Cwd=/media/sf_dev/pro/gideon for shell commands.
 ```
 
 ---
@@ -285,18 +285,18 @@ Use the run_command tool with Cwd=/media/sf_dev/pro/niyantra for shell commands.
 ## 9. Resume & Portfolio Update
 
 ```
-I have a bash CLI project called "gitsetu" at /media/sf_dev/pro/gitsetu/
+I have a bash CLI project called "gitsetu" at /media/sf_dev/pro/gideon/
 
 Read these files to understand current state:
-- /media/sf_dev/pro/gitsetu/README.md (features, stats)
-- /media/sf_dev/pro/gitsetu/CHANGELOG.md (what's been done)
-- /media/sf_dev/pro/gitsetu/lib/core.sh (version)
+- /media/sf_dev/pro/gideon/README.md (features, stats)
+- /media/sf_dev/pro/gideon/CHANGELOG.md (what's been done)
+- /media/sf_dev/pro/gideon/lib/core.sh (version)
 
 Also check the existing resume artifact if it exists:
 - /home/ag-deb/.gemini/antigravity/brain/16b65c7e-2531-45cf-8f76-4ec2b8f4e8f4/resume_brief.md
 
-Run tests to get exact count: `for f in /media/sf_dev/pro/gitsetu/tests/test_*.sh; do bash "$f" 2>/dev/null; done`
-Count lines: `find /media/sf_dev/pro/gitsetu/lib /media/sf_dev/pro/gitsetu/gitsetu -name "*.sh" -o -name "gitsetu" | xargs wc -l`
+Run tests to get exact count: `for f in /media/sf_dev/pro/gideon/tests/test_*.sh; do bash "$f" 2>/dev/null; done`
+Count lines: `find /media/sf_dev/pro/gideon/lib /media/sf_dev/pro/gideon/gitsetu -name "*.sh" -o -name "gitsetu" | xargs wc -l`
 
 Then update/create the resume_brief.md artifact with:
 1. Short resume entry (3-4 bullet points, quantified)
@@ -307,7 +307,7 @@ Then update/create the resume_brief.md artifact with:
 
 Every claim must be backed by verifiable code — no exaggeration.
 
-Use the run_command tool with Cwd=/media/sf_dev/pro/niyantra for shell commands.
+Use the run_command tool with Cwd=/media/sf_dev/pro/gideon for shell commands.
 ```
 
 ---
@@ -340,7 +340,7 @@ Create an artifact named `competitive_matrix.md`.
 2. Include dimensions such as: Zero-Dependency, Auto SSH-Key Generation, Hook/Guard Protection, Frictionless Cloning, Cross-Platform Support, State Encryption/Backup, Idempotency, and External Integrations.
 
 ### Phase 4: Artifact Generation (Product Roadmap)
-Create an artifact named `product_roadmap.md`. Based on the gaps identified in the matrix and your architectural audit, define a prioritized feature roadmap using the MoSCoW method:
+Read the existing `docs/product_roadmap.md`. Based on the gaps identified in the matrix and your architectural audit, update the `docs/product_roadmap.md` file using the MoSCoW method:
 1. **Must Have**: Critical features we need for a v2.0 release to absolutely dominate this niche.
 2. **Should Have**: High-value features that improve UX (e.g., GitLab/Bitbucket native API support, Bash Event Plugin System).
 3. **Might Have**: Ambitious features (e.g., 1Password integration, GPG commit signing automation).
@@ -359,16 +359,16 @@ Please begin by acknowledging this prompt and immediately starting your Phase 1 
 ## 11. Live Setup Test
 
 ```
-I have a bash CLI project called "gitsetu" at /media/sf_dev/pro/gitsetu/
+I have a bash CLI project called "gitsetu" at /media/sf_dev/pro/gideon/
 
 I want to do a LIVE test of the setup wizard. Guide me through:
 
-1. First, show me the dry run: `bash /media/sf_dev/pro/gitsetu/gitsetu setup --dry-run`
-2. Then run the real setup: `bash /media/sf_dev/pro/gitsetu/gitsetu setup`
+1. First, show me the dry run: `bash /media/sf_dev/pro/gideon/gitsetu setup --dry-run`
+2. Then run the real setup: `bash /media/sf_dev/pro/gideon/gitsetu setup`
    - Profile 1 (default): label=global, name=Bhaskar Jha, email=hmmbhaskar@gmail.com
    - Profile 2: label=pro, name=Bhaskar Jha, email=bhaskarjha.com@gmail.com, dir=/media/sf_dev/pro
-3. After setup, verify: `bash /media/sf_dev/pro/gitsetu/gitsetu verify`
-4. Check status: `bash /media/sf_dev/pro/gitsetu/gitsetu status`
+3. After setup, verify: `bash /media/sf_dev/pro/gideon/gitsetu verify`
+4. Check status: `bash /media/sf_dev/pro/gideon/gitsetu status`
 5. Show me the generated files:
    - cat ~/.gitconfig
    - cat ~/.ssh/config
@@ -379,7 +379,7 @@ I want to do a LIVE test of the setup wizard. Guide me through:
 Note: This is a Debian 13 VM with VirtualBox shared folder at /media/sf_dev/pro/.
 The gitsetu script has CRLF self-healing so it works directly on vboxsf.
 
-Use the run_command tool with Cwd=/media/sf_dev/pro/niyantra for shell commands.
+Use the run_command tool with Cwd=/media/sf_dev/pro/gideon for shell commands.
 ```
 
 ---
@@ -387,14 +387,14 @@ Use the run_command tool with Cwd=/media/sf_dev/pro/niyantra for shell commands.
 ## 12. CI/CD Improvements
 
 ```
-I have a bash CLI project called "gitsetu" at /media/sf_dev/pro/gitsetu/
+I have a bash CLI project called "gitsetu" at /media/sf_dev/pro/gideon/
 
 Read the current CI config:
-- /media/sf_dev/pro/gitsetu/.github/workflows/ci.yml
+- /media/sf_dev/pro/gideon/.github/workflows/ci.yml
 
 Also read:
-- /media/sf_dev/pro/gitsetu/README.md (badges section)
-- /media/sf_dev/pro/gitsetu/tests/helpers.sh (test framework)
+- /media/sf_dev/pro/gideon/README.md (badges section)
+- /media/sf_dev/pro/gideon/tests/helpers.sh (test framework)
 
 I want to improve CI/CD. Consider adding:
 1. Badge that dynamically shows test pass/fail from CI
@@ -409,7 +409,7 @@ Implement what makes sense. Update the CI workflow and README badges.
 
 Rules: Keep the CI simple — this is a bash project, not a monorepo.
 
-Use the run_command tool with Cwd=/media/sf_dev/pro/niyantra for shell commands.
+Use the run_command tool with Cwd=/media/sf_dev/pro/gideon for shell commands.
 ```
 
 ---
@@ -417,11 +417,11 @@ Use the run_command tool with Cwd=/media/sf_dev/pro/niyantra for shell commands.
 ## 13. Code Refactor / Cleanup
 
 ```
-I have a bash CLI project called "gitsetu" at /media/sf_dev/pro/gitsetu/
+I have a bash CLI project called "gitsetu" at /media/sf_dev/pro/gideon/
 
 Read all source files:
-- /media/sf_dev/pro/gitsetu/gitsetu
-- /media/sf_dev/pro/gitsetu/lib/*.sh
+- /media/sf_dev/pro/gideon/gitsetu
+- /media/sf_dev/pro/gideon/lib/*.sh
 
 Look for:
 1. Dead code (functions never called)
@@ -437,9 +437,9 @@ Rules:
 - Bash 3.2 compatible
 - All variables quoted
 - Don't change function signatures (tests depend on them)
-- Run all tests after refactoring: `for f in /media/sf_dev/pro/gitsetu/tests/test_*.sh; do bash "$f" 2>/dev/null; done`
+- Run all tests after refactoring: `for f in /media/sf_dev/pro/gideon/tests/test_*.sh; do bash "$f" 2>/dev/null; done`
 
-Use the run_command tool with Cwd=/media/sf_dev/pro/niyantra for shell commands.
+Use the run_command tool with Cwd=/media/sf_dev/pro/gideon for shell commands.
 ```
 
 ---
@@ -447,17 +447,17 @@ Use the run_command tool with Cwd=/media/sf_dev/pro/niyantra for shell commands.
 ## 14. Onboard Yourself (General Context)
 
 ```
-I have a bash CLI project called "gitsetu" at /media/sf_dev/pro/gitsetu/
+I have a bash CLI project called "gitsetu" at /media/sf_dev/pro/gideon/
 
 This is a zero-dependency bash 3.2+ CLI tool that automates multi-identity Git and SSH setup across Linux, macOS, and Windows.
 
 Please read these files to fully understand the project before I give you a task:
 
-1. /media/sf_dev/pro/gitsetu/README.md — What the tool does, CLI reference
-2. /media/sf_dev/pro/gitsetu/docs/ARCHITECTURE.md — How it's built (module diagram, CRLF self-healing, managed blocks, config formats)
-3. /media/sf_dev/pro/gitsetu/docs/VISION.md — Why design decisions were made
-4. /media/sf_dev/pro/gitsetu/lib/core.sh — Constants, state arrays, version
-5. /media/sf_dev/pro/gitsetu/gitsetu — Main script (note: CRLF self-healing block at top, gitsetu_source pattern for loading libs)
+1. /media/sf_dev/pro/gideon/README.md — What the tool does, CLI reference
+2. /media/sf_dev/pro/gideon/docs/ARCHITECTURE.md — How it's built (module diagram, CRLF self-healing, managed blocks, config formats)
+3. /media/sf_dev/pro/gideon/docs/VISION.md — Why design decisions were made
+4. /media/sf_dev/pro/gideon/lib/core.sh — Constants, state arrays, version
+5. /media/sf_dev/pro/gideon/gitsetu — Main script (note: CRLF self-healing block at top, gitsetu_source pattern for loading libs)
 
 Key things to know:
 - Bash 3.2 compatible (NO declare -A, mapfile, ${var,,})
@@ -465,7 +465,7 @@ Key things to know:
 - Managed block markers for idempotent config updates
 - Tests use isolated $HOME in /tmp (never touch real config)
 - VirtualBox shared folder causes CRLF — the script self-heals at runtime
-- Use Cwd=/media/sf_dev/pro/niyantra for the run_command tool
+- Use Cwd=/media/sf_dev/pro/gideon for the run_command tool
 
 After reading, summarize your understanding and I'll give you the task.
 ```
@@ -476,7 +476,7 @@ After reading, summarize your understanding and I'll give you the task.
 
 1. **Always copy the FULL prompt** — the context setup at the beginning is critical
 2. **Replace `[PLACEHOLDERS]`** with your specific details
-3. **The Cwd workaround** (`/media/sf_dev/pro/niyantra`) is needed because the workspace validator may not recognize the gitsetu path
+3. **The Cwd workaround** (`/media/sf_dev/pro/gideon`) is needed because the workspace validator may not recognize the gitsetu path
 4. **If ShellCheck isn't installed**, the AI will skip that step — install with `sudo apt install shellcheck` when you can
 5. **Each prompt is self-contained** — no need to reference previous conversations
 
