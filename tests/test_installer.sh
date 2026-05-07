@@ -32,9 +32,9 @@ test_installation_pipeline() {
         return 1
     fi
     
-    # Verify symlink exists
-    if [[ ! -L "$sandbox_home/.local/bin/gitsetu" ]]; then
-        echo "Failed: symlink was not created."
+    # Verify executable exists (checking -x instead of -L as MSYS2 may copy instead of symlink)
+    if [[ ! -x "$sandbox_home/.local/bin/gitsetu" ]]; then
+        echo "Failed: executable was not linked/copied to bin directory."
         rm -rf "$sandbox_home"
         return 1
     fi
