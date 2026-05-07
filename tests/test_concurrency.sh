@@ -47,6 +47,7 @@ test_atomic_headless_add() {
     # We will invoke the main CLI headless add in parallel 5 times
     local gitsetu_bin
     gitsetu_bin="$(dirname "${BASH_SOURCE[0]}")/../gitsetu"
+    gitsetu_bin="${gitsetu_bin%$'\r'}"
     local i
     for i in {1..5}; do
         bash "$gitsetu_bin" profile add "user${i}" --name="User ${i}" --email="user${i}@test.com" --dir="$HOME/user${i}" >/dev/null 2>&1 &
@@ -82,6 +83,7 @@ test_stale_lock_recovery() {
     # Now run gitsetu headless add. It should reap the stale lock and succeed.
     local gitsetu_bin
     gitsetu_bin="$(dirname "${BASH_SOURCE[0]}")/../gitsetu"
+    gitsetu_bin="${gitsetu_bin%$'\r'}"
     
     local output
     output=$(bash "$gitsetu_bin" profile add "stale-test" --name="Stale" --email="stale@test.com" --dir="$HOME/stale" 2>&1 || echo "FAILED")
