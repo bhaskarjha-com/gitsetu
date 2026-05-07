@@ -383,12 +383,14 @@ cmd_profile() {
     local lock_dir="${XDG_CONFIG_HOME:-$HOME/.config}/gitsetu/profiles.lock"
     local max_retries=300
     local retry=0
+    local no_pid_count=0
     
     # Ensure config directory exists before locking
     mkdir -p "${XDG_CONFIG_HOME:-$HOME/.config}/gitsetu"
     
     while ! mkdir "$lock_dir" 2>/dev/null; do
         if [[ -f "$lock_dir/pid" ]]; then
+            no_pid_count=0
             local lock_pid
             lock_pid=$(cat "$lock_dir/pid" 2>/dev/null || echo "")
             if [[ -n "$lock_pid" ]] && ! kill -0 "$lock_pid" 2>/dev/null; then
@@ -400,12 +402,15 @@ cmd_profile() {
                 fi
             fi
         else
-            # Phantom deadlock prover. Process might have been kill -9'd exactly between mkdir and echo $$.
-            # Wait 1 second to ensure it's not just a microsecond race from a living process.
-            sleep 1
-            if [[ ! -f "$lock_dir/pid" ]]; then
+            # Phantom deadlock prover: the lock dir exists but has no PID file.
+            # This can happen legitimately for a microsecond while a healthy process
+            # is between mkdir and echo $$. Only reap after 3 consecutive observations
+            # (each separated by the 0.1s retry sleep) to definitively prove it's dead.
+            no_pid_count=$((no_pid_count + 1))
+            if [[ "$no_pid_count" -ge 3 ]]; then
                 if mv "$lock_dir" "${lock_dir}.stale.$$" 2>/dev/null; then
                     rm -rf "${lock_dir}.stale.$$"
+                    no_pid_count=0
                     continue
                 fi
             fi
