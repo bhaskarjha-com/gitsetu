@@ -85,7 +85,7 @@ Rules you MUST follow:
 
 After implementing:
 1. Write tests in tests/test_<module>.sh following the existing pattern (see tests/helpers.sh)
-2. Run all tests: `for f in /media/sf_dev/pro/gideon/tests/test_*.sh; do bash "$f" 2>/dev/null; done`
+2. Run all tests: `make test`
 3. Update README.md (CLI reference table, project structure if new files)
 4. Update docs/ARCHITECTURE.md if adding new modules
 5. Update CHANGELOG.md
@@ -111,7 +111,7 @@ Follow this process:
 2. Write a FAILING test that reproduces the bug in tests/test_<module>.sh
 3. Fix the bug in the lib file
 4. Run the test to confirm it passes
-5. Run ALL tests to confirm no regressions: `for f in /media/sf_dev/pro/gideon/tests/test_*.sh; do bash "$f" 2>/dev/null; done`
+5. Run ALL tests to confirm no regressions: `make test`
 6. Update CHANGELOG.md with the fix
 
 Rules:
@@ -148,7 +148,7 @@ Then write new tests following these patterns:
 - Use assert_* helpers: assert_equals, assert_contains, assert_file_exists, assert_file_contains, assert_exit_code
 - Tests MUST NOT touch real ~/.ssh or ~/.gitconfig
 
-Run all tests after adding: `for f in /media/sf_dev/pro/gideon/tests/test_*.sh; do bash "$f" 2>/dev/null; done`
+Run all tests after adding: `make test`
 Update README.md test count.
 
 Use the run_command tool with Cwd=/media/sf_dev/pro/gideon for shell commands.
@@ -274,7 +274,7 @@ Steps:
 6. Add tests to tests/test_platform.sh
 7. Update README.md platform support table
 8. Add platform section to docs/TROUBLESHOOTING.md
-9. Run all tests: `for f in /media/sf_dev/pro/gideon/tests/test_*.sh; do bash "$f" 2>/dev/null; done`
+9. Run all tests: `make test`
 
 Rules: Bash 3.2 compatible, all variables quoted, test changes don't break other platforms.
 
@@ -438,7 +438,7 @@ Rules:
 - Bash 3.2 compatible
 - All variables quoted
 - Don't change function signatures (tests depend on them)
-- Run all tests after refactoring: `for f in /media/sf_dev/pro/gideon/tests/test_*.sh; do bash "$f" 2>/dev/null; done`
+- Run all tests after refactoring: `make test`
 
 Use the run_command tool with Cwd=/media/sf_dev/pro/gideon for shell commands.
 ```
