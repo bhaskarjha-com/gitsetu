@@ -23,6 +23,7 @@
 12. [CI/CD Improvements](#12-cicd-improvements)
 13. [Code Refactor / Cleanup](#13-code-refactor--cleanup)
 14. [Onboard Yourself (General Context)](#14-onboard-yourself-general-context)
+15. [Brutal Security & Concurrency Audit](#15-brutal-security--concurrency-audit)
 
 ---
 
@@ -461,3 +462,43 @@ After reading, summarize your understanding and I'll give you the task.
 3. **The Cwd workaround** (`/media/sf_dev/pro/niyantra`) is needed because the workspace validator may not recognize the gitsetu path
 4. **If ShellCheck isn't installed**, the AI will skip that step — install with `sudo apt install shellcheck` when you can
 5. **Each prompt is self-contained** — no need to reference previous conversations
+
+---
+
+## 15. Brutal Security & Concurrency Audit
+
+```
+You are not auditing scripts. You are auditing a highly concurrent, state-mutating filesystem orchestrator that has just undergone a strict zero-trust security hardening. Your job is to find every way this CLI tool fails, corrupts data, leaks PII, or deadlocks — specifically targeting the new fail-closed boundaries, stale lock reapers, atomic cleanup traps, and the OpenSSL encryption engine.
+
+**Mandatory Rules:**
+
+**Read every file. No script is "low-risk."** Read `gitsetu`, every file in `lib/`, every file in `tests/`, `install.sh`, `uninstall.sh`, and the `Makefile`. Skip nothing. Do not assume `helpers.sh` or the new `test_*.sh` regression suites (all 123 of them) are perfectly written.
+
+**Trace, don't just read.** We recently implemented a unified `GITSETU_CLEANUP_FILES` array and trapped it to `EXIT/SIGINT/SIGTERM`. Trace this lifecycle: What happens if `kill -9` hits exactly between the `mktemp` creation and the array registration? Does the trap inadvertently swallow exit codes (`$?`)? What happens if `mv` fails during an atomic swap but the trap still fires?
+
+**Attack the Concurrency Reaper.** We implemented stale POSIX lock reaping (writing `$$` to `profiles.lock/pid` and checking `kill -0`). Audit this heavily: What happens if two parallel headless processes simultaneously detect a dead PID and both attempt to reap and steal the lock at the exact same millisecond? Is there a secondary race condition in the reaper itself?
+
+**Attack the Cryptographic Vault.** We just added `gitsetu backup` and `gitsetu restore`. Audit the OpenSSL wrapper (`-pbkdf2` vs `-sha256` LibreSSL fallback). Can a malicious user inject arbitrary OpenSSL flags into the password prompt? What happens during the Pre-Flight Safety Net if the system runs entirely out of disk space while packing the `.tar.gz.enc`? Are the unencrypted temporary tarballs securely wiped via the `EXIT` trap if decryption fails mid-stream?
+
+**Execute the mental execution tree.** Walk the execution paths. Test every flag combination in your head. Analyze it inside MSYS2 (Windows), macOS, and Linux. Look at what the CLI claims to do vs what actually ends up in the hard drive. Check the new config escaping logic: can malicious Windows paths containing single quotes, subshells (`$()`), or double-escapes (`\\\\`) break out of the `[includeIf]` sanitization?
+
+**Think in execution flows, not scripts.** For each state change (profile creation, teardown, proxy execution, pre-commit hook, vault extraction):
+* Where is the state originating? (CLI flags? TTY interactive prompt? Stale registry file? Malformed `.enc` archive?)
+* What global configuration files does it touch? 
+* Who else touches that state concurrently? (Git GUI clients? Background fetchers? 50 parallel GitSetu CI runs?)
+* What happens when the user's existing `~/.gitconfig` is totally malformed or already contains duplicate GitSetu managed blocks?
+
+**Think in failure modes.** For each core function:
+* What happens under hyper-concurrent access (`gitsetu profile add` run 100 times per second)?
+* What happens if `PROFILE_COUNT` becomes desynchronized from the actual number of files on disk?
+* What happens when the underlying `git`, `ssh-keygen`, or `openssl` binary is missing, aliased, severely outdated, or prompts for an interactive TTY unexpectedly?
+* What happens when a user runs `gitsetu teardown --deep` on a massive directory tree lacking read permissions?
+
+**Audit the security boundary adversarially.** We patched the pre-commit guard to be strictly "fail-closed" (`exit 1` if configuration is missing) and pinned our GitHub Actions to strict cryptographic SHAs. Think like an attacker: Can a malicious repository craft a local `.git/config` that overrides `core.hooksPath` to completely suppress the guard? Are private keys or PII ever accidentally dumped to `stdout` or `stderr` via `set -x` or an unhandled crash during `cmd_restore`?
+
+**Scrutinize the Array Loops.** We replaced a dangerous Bash 3.2 array slicing hack with a custom `remove_profile_at_index()` loop in `lib/core.sh`. Verify this logic perfectly preserves empty strings. Are there any math expansion edge cases where `seq 0 $((PROFILE_COUNT - 1))` breaks if a user manually corrupts the registry to 0 profiles?
+
+**Check for dual state.** Search for cases where the same concept (e.g., "is commit signing enabled?") is stored in `profiles.conf` AND in the generated `profile.gitconfig`. Verify they stay perfectly in sync when a user runs an update or manual edit.
+
+**Count things.** Count unquoted variables. Count `mktemp` usages vs array registrations. Count `eval` or `exec` statements. Count how many `sed` commands rely on GNU extensions instead of strict POSIX. Numbers expose vulnerabilities that casual reading misses.
+```
