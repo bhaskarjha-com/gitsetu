@@ -157,7 +157,23 @@ $ git commit -m "fix critical auth bug"
 
 ---
 
-## 06. Uninstallation
+## 06. Encrypted State Export (Backup / Restore)
+
+If you need to migrate your identities to a new laptop, GitSetu provides a pure-Bash encryption engine to export your state. Because GitSetu manages your private SSH keys and PATs, the backup engine uses native OpenSSL with `-pbkdf2` key derivation to aggressively encrypt the archive.
+
+```bash
+# Encrypt your entire state into a secure vault file
+gitsetu backup vault.enc
+
+# On the new laptop, restore the state and regenerate global Git configurations
+gitsetu restore vault.enc
+```
+
+> **Pre-Flight Safety Net:** The `restore` command natively prevents catastrophic data loss. If it detects an active GitSetu environment on the new machine, it will automatically run a silent background backup of the current state before wiping and extracting the new vault.
+
+---
+
+## 07. Uninstallation
 
 GitSetu leaves no ghost files behind. To safely remove GitSetu and all of its global configuration injections:
 
@@ -172,7 +188,7 @@ curl -sL https://raw.githubusercontent.com/bhaskarjha-com/gitsetu/main/uninstall
 
 ---
 
-## 07. Enterprise Automation & Zero-Trust Architecture
+## 08. Enterprise Automation & Zero-Trust Architecture
 
 GitSetu is designed from the ground up for highly parallel CI/CD environments and zero-touch `ansible` provisioning, adopting a **strictly secure, Zero-Trust Architecture**:
 * **Zero-Trust Pre-Commit Guard & SSOT:** The identity guard enforces a "fail-closed" boundary. If the GitSetu configuration is missing, tampered with, or if the environment's `$HOME` is overridden maliciously, the hook will unconditionally block the commit. To prevent "dual-state" desynchronization, the guard acts as a Single Source of Truth (SSOT), dynamically querying the isolated `.gitconfig` files instead of relying on central registries.

@@ -28,6 +28,7 @@ The following critical features and architectural fixes have been successfully i
 - **Shell Prompt Integration (`gitsetu prompt`)**: Ultra-fast, sub-millisecond execution for displaying the active identity within terminal `$PS1` variables without spawning subshells.
 - **Custom SSH Key Naming & Paths**: Natively allows users to bypass default key schemas (`id_ed25519_<label>`) and link existing arbitrary keys via absolute path mapping in the global `.gitconfig`.
 - **Git Credential Broker (PAT Management)**: Pure-Bash OS-level broker that intercepts Git HTTPS authentication streams to securely route Personal Access Tokens (PATs) directly from macOS Keychain (`security`) and Linux (`secret-tool`), completely isolating tokens by profile directory.
+- **Encrypted State Export & Migration (`gitsetu backup`)**: Natively bundles and encrypts GitSetu state using OpenSSL (`-pbkdf2` / `-sha256`), providing a safe Pre-Flight safety net to prevent catastrophic data loss during environment migration.
 
 ---
 
@@ -74,15 +75,11 @@ All High-Value Integration features have been completely implemented and verifie
 **Solution:** Allow users to drop `.sh` scripts into a plugins folder that execute on `on_profile_switch`.
 **Difficulty:** Medium.
 
-### 6. Encrypted State Export / Backup
-**Solution:** Tar and encrypt the GitSetu config and SSH keys using `openssl enc` for migration to new laptops.
-**Difficulty:** Low.
-
-### 7. 1Password SSH & Git Integration
+### 6. 1Password SSH & Git Integration
 **Solution:** Detect the 1Password CLI (`op`) and automatically configure Git's `core.sshCommand` to route through their agent socket instead of generating local keys.
 **Difficulty:** Very High.
 
-### 8. Strict SSH Agent Sandboxing
+### 7. Strict SSH Agent Sandboxing
 **Solution:** Dynamically enforce `IdentitiesOnly = yes` and carefully unmount/mount specific keys to the active agent socket context to prevent "Too many authentication failures".
 **Difficulty:** High.
 
