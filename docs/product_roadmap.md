@@ -83,4 +83,19 @@ All High-Value Integration features have been completely implemented and verifie
 **Solution:** Dynamically enforce `IdentitiesOnly = yes` and carefully unmount/mount specific keys to the active agent socket context to prevent "Too many authentication failures".
 **Difficulty:** High.
 
+### 8. Interactive Headless Expansion
+**Problem:** Mass infrastructure deployments cannot easily navigate interactive TTY setup wizards.
+**Solution:** Support a fully headless `gitsetu setup --blueprint <file.json>` command to seed configuration states programmatically.
+**Difficulty:** Medium.
+
+### 9. Key Rotation Utility
+**Problem:** Stale SSH keys and Personal Access Tokens are security liabilities.
+**Solution:** Introduce a `gitsetu rotate` subcommand for automated SSH/PAT key rotation, warning users of expiring keys and cleanly re-generating/uploading new ones.
+**Difficulty:** High (due to lack of robust external API integration in Bash).
+
+### 10. Backup Encryption Agility
+**Problem:** Users may prefer modern encryption binaries over legacy OpenSSL wrappers.
+**Solution:** Expand the OpenSSL vault logic in `gitsetu backup` to dynamically detect and support `age` or `gpg` encryption depending on host system availability.
+**Difficulty:** Medium.
+
 
