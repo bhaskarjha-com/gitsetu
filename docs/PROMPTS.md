@@ -312,29 +312,46 @@ Use the run_command tool with Cwd=/media/sf_dev/pro/niyantra for shell commands.
 
 ---
 
-## 10. Competitive Analysis Refresh
+## 10. Competitive Analysis & Product Roadmap Generation
 
 ```
-I have a bash CLI project called "gitsetu" at /media/sf_dev/pro/gitsetu/
-It's a zero-dependency bash CLI for automated Git multi-identity and SSH setup.
+You are acting as a Lead Technical Product Manager and Principal Architect. We have built a zero-dependency, pure-bash CLI tool named **GitSetu** (currently at v1.1.1) that completely automates Git identity, SSH key management, credential brokering, and OpenSSL state encryption for multi-account developers.
 
-Read the current analysis if it exists:
-- /home/ag-deb/.gemini/antigravity/brain/16b65c7e-2531-45cf-8f76-4ec2b8f4e8f4/competitive_analysis.md
+I want you to conduct a brutal, zero-bias audit of our current solution, compare it against the broader market, and define our technical roadmap.
 
-Do fresh web research on:
-1. Git identity management tools (any new ones since last analysis?)
-2. SSH key management automation tools
-3. Dotfiles managers that handle git identity
-4. GitHub/GitLab features for multi-account management
+### Phase 1: Deep Contextual Audit
+1. Read `README.md`, `docs/VISION.md`, and `docs/ARCHITECTURE.md` to deeply understand GitSetu's core architecture, including our "Magical Clone" capability (`includeIf` mid-flight injection), our `vboxsf`/Windows CRLF self-healing logic, our OpenSSL-backed encrypted state vault, and our native Credential Broker integration.
+2. Identify our exact technical boundaries, strengths, and current limitations within the pure-bash constraints.
 
-For each competitor found, document:
-- Name, language, stars, last commit date
-- Features: key gen, git config, SSH config, guard hook, cross-platform
-- Dependencies required
-- Gap vs gitsetu
+### Phase 2: Comprehensive Web Research
+1. Use your web search tools to actively research existing Git identity management tools. Specifically look into:
+   - `git-profile`
+   - `gitego`
+   - `karn`
+   - `gguser`
+   - `direnv` (how it's used for git identities)
+   - 1Password's SSH & Git integration (op CLI)
+   - Any other highly-starred GitHub repositories solving the "multiple git accounts" problem.
+2. Analyze what features they offer that we lack, how they handle SSH key generation, and what their setup friction looks like.
 
-Update the competitive analysis with new findings.
-Also check if gitsetu's README comparison table needs updating.
+### Phase 3: Artifact Generation (Feature Matrix)
+Create an artifact named `competitive_matrix.md`.
+1. Build a detailed Feature Matrix table comparing GitSetu against at least 4 of the top competitors you researched.
+2. Include dimensions such as: Zero-Dependency, Auto SSH-Key Generation, Hook/Guard Protection, Frictionless Cloning, Cross-Platform Support, State Encryption/Backup, Idempotency, and External Integrations.
+
+### Phase 4: Artifact Generation (Product Roadmap)
+Create an artifact named `product_roadmap.md`. Based on the gaps identified in the matrix and your architectural audit, define a prioritized feature roadmap using the MoSCoW method:
+1. **Must Have**: Critical features we need for a v2.0 release to absolutely dominate this niche.
+2. **Should Have**: High-value features that improve UX (e.g., GitLab/Bitbucket native API support, Bash Event Plugin System).
+3. **Might Have**: Ambitious features (e.g., 1Password integration, GPG commit signing automation).
+*For every single feature proposed, you must include a "Difficulty of Implementation" rating (Low/Medium/High) based specifically on our strict "zero-dependency bash 3.2" constraint.*
+
+### Execution Rules
+- Do NOT modify any existing source code during this session.
+- Output your findings purely through the requested markdown artifacts.
+- Be brutal in your assessment. If our pure-bash constraint limits a valuable feature, call it out. 
+
+Please begin by acknowledging this prompt and immediately starting your Phase 1 reading and Phase 2 web research.
 ```
 
 ---
