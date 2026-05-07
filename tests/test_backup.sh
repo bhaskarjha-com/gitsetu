@@ -93,6 +93,61 @@ test_multiple_backups_dont_overwrite() {
     return 1
 }
 
+test_cmd_backup_restore() {
+    export GITSETU_TEST_VAULT_PASS="secure_password"
+    
+    # Setup mock state
+    mkdir -p "$GITSETU_CONFIG_DIR/profiles"
+    echo "test_content" > "$GITSETU_CONFIG_DIR/profiles/test.gitconfig"
+    export GITSETU_SSH_DIR="$HOME/.ssh/gitsetu"
+    mkdir -p "$GITSETU_SSH_DIR"
+    echo "test_key" > "$GITSETU_SSH_DIR/id_ed25519_test"
+    
+    # 1. Test Backup
+    local vault_file="test_vault.enc"
+    cmd_backup "$vault_file" >/dev/null 2>&1
+    assert_equals 0 $? "cmd_backup runs successfully" || return 1
+    
+    if [[ ! -f "$vault_file" ]]; then
+        echo "Failed: Vault file $vault_file was not created."
+        return 1
+    fi
+    
+    # 2. Wipe state
+    rm -rf "$GITSETU_CONFIG_DIR" "$GITSETU_SSH_DIR"
+    
+    # 3. Test Restore
+    cmd_restore "$vault_file" >/dev/null 2>&1
+    assert_equals 0 $? "cmd_restore runs successfully" || return 1
+    
+    # Verify state is restored
+    if [[ ! -f "$GITSETU_CONFIG_DIR/profiles/test.gitconfig" ]]; then
+        echo "Failed: Config state not restored."
+        return 1
+    fi
+    
+    if [[ ! -f "$GITSETU_SSH_DIR/id_ed25519_test" ]]; then
+        echo "Failed: SSH state not restored."
+        return 1
+    fi
+    
+    # 4. Test Pre-Flight Safety Net
+    # Restoring AGAIN while state exists should trigger the safety net
+    cmd_restore "$vault_file" >/dev/null 2>&1
+    assert_equals 0 $? "second cmd_restore runs successfully" || return 1
+    
+    local pre_restore_backups
+    pre_restore_backups=$(ls gitsetu_vault_pre_restore_*.enc 2>/dev/null | wc -l)
+    if [[ "$pre_restore_backups" -eq 0 ]]; then
+        echo "Failed: Pre-flight safety net vault was not created."
+        return 1
+    fi
+    
+    rm -f "$vault_file" gitsetu_vault_pre_restore_*.enc
+    unset GITSETU_TEST_VAULT_PASS
+    return 0
+}
+
 # --- Run ---
 
 printf '\n%btest_backup.sh%b\n' "$T_BOLD" "$T_RESET"
@@ -102,4 +157,6 @@ run_test "backup preserves file content" test_backup_preserves_content
 run_test "backup does not modify original" test_backup_does_not_modify_original
 run_test "backup nonexistent file returns error" test_backup_nonexistent_file_returns_error
 run_test "multiple backups don't overwrite each other" test_multiple_backups_dont_overwrite
+run_test "full encrypted backup/restore lifecycle" test_cmd_backup_restore
+
 print_results "Backup tests"

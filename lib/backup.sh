@@ -85,3 +85,161 @@ list_backups() {
         printf >&2 '    %s\n' "$line"
     done
 }
+
+# ------------------------------------------------------------------------------
+# get_openssl_args — Cross-platform OpenSSL probing
+# ------------------------------------------------------------------------------
+get_openssl_args() {
+    if openssl enc -help 2>&1 | grep -q -- "-pbkdf2"; then
+        echo "-pbkdf2 -iter 100000"
+    else
+        echo "-md sha256"
+    fi
+}
+
+# ------------------------------------------------------------------------------
+# cmd_backup — Full State Encrypted Backup
+# ------------------------------------------------------------------------------
+cmd_backup() {
+    local out_file="${1:-}"
+    
+    if [[ ! -d "$GITSETU_CONFIG_DIR" ]] && [[ ! -d "$GITSETU_SSH_DIR" ]]; then
+        print_error "No GitSetu state found to backup."
+        return 1
+    fi
+
+    local timestamp
+    timestamp=$(date +%Y%m%d_%H%M%S)
+    
+    if [[ -z "$out_file" ]]; then
+        out_file="gitsetu_vault_${timestamp}.tar.gz.enc"
+    fi
+
+    # Tar the state safely
+    local temp_tar
+    temp_tar=$(mktemp)
+    
+    # Bundle relative paths
+    local tar_args=()
+    [[ -d "$GITSETU_CONFIG_DIR" ]] && tar_args+=(".config/gitsetu")
+    [[ -d "$GITSETU_SSH_DIR" ]] && tar_args+=(".ssh/gitsetu")
+
+    if ! tar -czf "$temp_tar" -C "$HOME" "${tar_args[@]}" 2>/dev/null; then
+        print_error "Failed to compress state directories."
+        rm -f "$temp_tar"
+        return 1
+    fi
+
+    printf >&2 "  %bLocking Vault%b\n" "$BOLD" "$RESET"
+    
+    local password
+    if [[ -n "${GITSETU_TEST_VAULT_PASS:-}" ]]; then
+        password="$GITSETU_TEST_VAULT_PASS"
+    else
+        password=$(ask_password "Enter a strong password to encrypt the vault: ")
+        local confirm
+        confirm=$(ask_password "Confirm password: ")
+
+        if [[ "$password" != "$confirm" ]]; then
+            print_error "Passwords do not match. Backup aborted."
+            rm -f "$temp_tar"
+            return 1
+        fi
+    fi
+
+    local ssl_args=("-aes-256-cbc" "-salt")
+    # shellcheck disable=SC2046
+    ssl_args+=($(get_openssl_args))
+
+    export GITSETU_VAULT_PASS="$password"
+    if openssl enc "${ssl_args[@]}" -in "$temp_tar" -out "$out_file" -pass env:GITSETU_VAULT_PASS 2>/dev/null; then
+        print_success "Vault created successfully: $out_file"
+    else
+        print_error "Encryption failed."
+        unset GITSETU_VAULT_PASS
+        rm -f "$temp_tar"
+        return 1
+    fi
+
+    unset GITSETU_VAULT_PASS
+    rm -f "$temp_tar"
+    return 0
+}
+
+# ------------------------------------------------------------------------------
+# cmd_restore — Import and regenerate state from an encrypted vault
+# ------------------------------------------------------------------------------
+cmd_restore() {
+    local in_file="$1"
+
+    if [[ -z "$in_file" ]] || [[ ! -f "$in_file" ]]; then
+        print_error "Vault file not found: $in_file"
+        return 1
+    fi
+
+    printf >&2 "  %bUnlocking Vault%b\n" "$BOLD" "$RESET"
+    local password
+    if [[ -n "${GITSETU_TEST_VAULT_PASS:-}" ]]; then
+        password="$GITSETU_TEST_VAULT_PASS"
+    else
+        password=$(ask_password "Enter vault password: ")
+    fi
+
+    local ssl_args=("-d" "-aes-256-cbc" "-salt")
+    # shellcheck disable=SC2046
+    ssl_args+=($(get_openssl_args))
+
+    local temp_tar
+    temp_tar=$(mktemp)
+
+    export GITSETU_VAULT_PASS="$password"
+    if ! openssl enc "${ssl_args[@]}" -in "$in_file" -out "$temp_tar" -pass env:GITSETU_VAULT_PASS 2>/dev/null; then
+        print_error "Decryption failed. Incorrect password or corrupted vault."
+        unset GITSETU_VAULT_PASS
+        rm -f "$temp_tar"
+        return 1
+    fi
+    unset GITSETU_VAULT_PASS
+
+    # Pre-Flight Safety Net
+    if [[ -d "$GITSETU_CONFIG_DIR" ]] || [[ -d "$GITSETU_SSH_DIR" ]]; then
+        print_warning "Active state detected. Creating pre-restore safety backup..."
+        export GITSETU_TEST_VAULT_PASS="safety_net"
+        cmd_backup "gitsetu_vault_pre_restore_$(date +%Y%m%d_%H%M%S).tar.gz.enc" >/dev/null 2>&1 || true
+        unset GITSETU_TEST_VAULT_PASS
+        
+        # Teardown current global configs to avoid duplicate block drift
+        if type teardown_all >/dev/null 2>&1; then
+            teardown_all >/dev/null 2>&1 || true
+        fi
+        rm -rf "$GITSETU_CONFIG_DIR" "$GITSETU_SSH_DIR"
+    fi
+
+    mkdir -p "$HOME/.config" "$HOME/.ssh"
+    if ! tar -xzf "$temp_tar" -C "$HOME" 2>/dev/null; then
+        print_error "Failed to extract vault."
+        rm -f "$temp_tar"
+        return 1
+    fi
+
+    rm -f "$temp_tar"
+    print_success "State successfully extracted."
+
+    # Regenerate global Git and SSH state
+    print_info "Regenerating global hooks and configurations..."
+    if type write_global_gitconfig >/dev/null 2>&1; then
+        write_global_gitconfig
+        setup_hooks
+        
+        if [[ -f "$GITSETU_PROFILES_CONF" ]]; then
+            while IFS=: read -r label email dir provider sign_commits key_path || [[ -n "$label" ]]; do
+                [[ -z "$label" ]] || [[ "$label" == "#"* ]] && continue
+                write_profile_gitconfig "$label" "$email" "$sign_commits" "$key_path"
+                setup_ssh_config "$label" "$provider" "$key_path"
+            done < "$GITSETU_PROFILES_CONF"
+        fi
+    fi
+
+    print_success "Restore complete. Your identity is active."
+    return 0
+}

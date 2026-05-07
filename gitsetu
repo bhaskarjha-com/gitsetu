@@ -118,6 +118,8 @@ ${BOLD}USAGE${RESET}
     gitsetu setup [--dry-run]        Interactive setup wizard
     gitsetu status                   Show current identity configuration
     gitsetu verify                   Test SSH keys and git config
+    ${CYAN}gitsetu backup [out_file]${RESET}    Export encrypted identity state
+    ${CYAN}gitsetu restore <in_file>${RESET}    Import encrypted identity state
     gitsetu run <profile> -- <cmd>   Run command as specific identity
     gitsetu teardown [--force] [--deep]  Remove all configurations
                                      --deep: Recursively strip local repository overrides
@@ -603,6 +605,8 @@ main() {
         printf >&2 '       gitsetu prompt               Print active profile (for PS1)\n'
         printf >&2 '       gitsetu run <profile> -- <cmd>  Run as identity\n'
         printf >&2 '       gitsetu remove <profile>     Remove a specific profile\n'
+        printf >&2 '       gitsetu backup [out_file]    Export encrypted state vault\n'
+        printf >&2 '       gitsetu restore <in_file>    Import encrypted state vault\n'
         printf >&2 '       gitsetu teardown [--force]   Remove all configurations\n'
         printf >&2 '       gitsetu guard --install      Install commit guard hook\n'
         printf >&2 '       gitsetu --help                Full help\n\n'
@@ -648,6 +652,12 @@ main() {
             ;;
         remove)
             cmd_remove "${1:-}"
+            ;;
+        backup)
+            cmd_backup "$@"
+            ;;
+        restore)
+            cmd_restore "$@"
             ;;
         profile)
             cmd_profile "$@"
