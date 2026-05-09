@@ -96,12 +96,23 @@ test_multiple_backups_dont_overwrite() {
 test_cmd_backup_restore() {
     export GITSETU_TEST_VAULT_PASS="secure_password"
     
-    # Setup mock state
+    # Setup mock state: config dir + profile + SSH keys in ~/.ssh/
     mkdir -p "$GITSETU_CONFIG_DIR/profiles"
     echo "test_content" > "$GITSETU_CONFIG_DIR/profiles/test.gitconfig"
-    export GITSETU_SSH_DIR="$HOME/.ssh/gitsetu"
-    mkdir -p "$GITSETU_SSH_DIR"
-    echo "test_key" > "$GITSETU_SSH_DIR/id_ed25519_test"
+    
+    # Create mock SSH key files (where GitSetu actually stores them)
+    echo "test_private_key" > "$HOME/.ssh/id_ed25519_test"
+    echo "test_public_key" > "$HOME/.ssh/id_ed25519_test.pub"
+    chmod 600 "$HOME/.ssh/id_ed25519_test"
+    
+    # Write a profiles.conf so the key collector can find the key paths
+    mkdir -p "$GITSETU_CONFIG_DIR"
+    cat > "$GITSETU_PROFILES_CONF" <<EOF
+# gitsetu profile registry
+# Format: label:email:directory:provider:sign_commits:key_path:provider_user
+# Used by the pre-commit guard hook
+test::$HOME/test:github.com:0:$HOME/.ssh/id_ed25519_test:
+EOF
     
     # 1. Test Backup
     local vault_file="test_vault.enc"
@@ -114,20 +125,22 @@ test_cmd_backup_restore() {
     fi
     
     # 2. Wipe state
-    rm -rf "$GITSETU_CONFIG_DIR" "$GITSETU_SSH_DIR"
+    rm -rf "$GITSETU_CONFIG_DIR"
+    rm -f "$HOME/.ssh/id_ed25519_test" "$HOME/.ssh/id_ed25519_test.pub"
     
     # 3. Test Restore
     cmd_restore "$vault_file" >/dev/null 2>&1
     assert_equals 0 $? "cmd_restore runs successfully" || return 1
     
-    # Verify state is restored
+    # Verify config state is restored
     if [[ ! -f "$GITSETU_CONFIG_DIR/profiles/test.gitconfig" ]]; then
         echo "Failed: Config state not restored."
         return 1
     fi
     
-    if [[ ! -f "$GITSETU_SSH_DIR/id_ed25519_test" ]]; then
-        echo "Failed: SSH state not restored."
+    # Verify SSH keys are restored
+    if [[ ! -f "$HOME/.ssh/id_ed25519_test" ]]; then
+        echo "Failed: SSH key not restored."
         return 1
     fi
     

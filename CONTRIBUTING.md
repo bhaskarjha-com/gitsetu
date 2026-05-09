@@ -16,7 +16,7 @@ No build step. No dependencies to install.
 We use a standard `Makefile` to orchestrate our test suite.
 
 ```bash
-# Run the entire 122-test sandbox matrix
+# Run the entire 123-test sandbox matrix
 make test
 ```
 

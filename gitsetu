@@ -502,37 +502,8 @@ cmd_remove() {
         rm -f "$config_file"
     fi
     
-    # 3. Reload in-memory arrays so the writers have the updated state
-    # shellcheck disable=SC2034
-    PROFILE_LABELS=()
-    # shellcheck disable=SC2034
-    PROFILE_NAMES=()
-    # shellcheck disable=SC2034
-    PROFILE_EMAILS=()
-    # shellcheck disable=SC2034
-    PROFILE_DIRS=()
-    # shellcheck disable=SC2034
-    PROFILE_PROVIDERS=()
-    # shellcheck disable=SC2034
-    PROFILE_SIGNS=()
-    PROFILE_COUNT=0
-    
-    while IFS=: read -r label email dir provider sign_commits key_path || [[ -n "$label" ]]; do
-        [[ "$label" == "#"* ]] && continue
-        [[ -z "$label" ]] && continue
-        PROFILE_LABELS+=("$label")
-        PROFILE_EMAILS+=("$email")
-        PROFILE_DIRS+=("$dir")
-        PROFILE_PROVIDERS+=("${provider:-github.com}")
-        PROFILE_SIGNS+=("${sign_commits:-0}")
-        PROFILE_KEYS+=("${key_path:-$HOME/.ssh/id_ed25519_${label}}")
-        PROFILE_COUNT=$((PROFILE_COUNT + 1))
-    done < "$GITSETU_PROFILES_CONF"
-    
-    # Note: We do not reload PROFILE_NAMES from the conf because we never stored them there!
-    # Wait, write_global_gitconfig relies on PROFILE_NAMES for the default profile...
-    # BUT wait! We deleted the default profile's name/email injection in step 1 of the audit fix!
-    # The default profile only needs the label to set sshCommand! It NO LONGER needs PROFILE_NAMES.
+    # 3. Reload in-memory arrays from the updated registry
+    load_profiles
     
     # 4. Re-run block generators (idempotent, they will overwrite the global configs without the removed profile)
     write_global_gitconfig >/dev/null

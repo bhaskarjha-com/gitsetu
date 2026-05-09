@@ -98,19 +98,55 @@ get_openssl_args() {
 }
 
 # ------------------------------------------------------------------------------
+# _collect_ssh_key_paths — Enumerate SSH key files managed by GitSetu
+#
+# Scans profiles.conf for key paths and collects those that exist on disk.
+# Outputs paths relative to $HOME (for tar bundling), one per line.
+# ------------------------------------------------------------------------------
+_collect_ssh_key_paths() {
+    local key_files=()
+
+    if [[ -f "$GITSETU_PROFILES_CONF" ]]; then
+        local _label _email _dir _provider _sign _kpath _puser
+        while IFS=: read -r _label _email _dir _provider _sign _kpath _puser || [[ -n "$_label" ]]; do
+            [[ "$_label" == "#"* ]] && continue
+            [[ -z "$_label" ]] && continue
+            _kpath="${_kpath:-$HOME/.ssh/id_ed25519_${_label}}"
+            if [[ -f "$_kpath" ]]; then
+                # Convert absolute path to path relative to $HOME for tar
+                local rel="${_kpath#$HOME/}"
+                key_files+=("$rel")
+                [[ -f "${_kpath}.pub" ]] && key_files+=("${rel}.pub")
+            fi
+        done < "$GITSETU_PROFILES_CONF"
+    fi
+
+    local kf
+    for kf in "${key_files[@]}"; do
+        printf '%s\n' "$kf"
+    done
+}
+
+# ------------------------------------------------------------------------------
 # cmd_backup — Full State Encrypted Backup
 # ------------------------------------------------------------------------------
 cmd_backup() {
     local out_file="${1:-}"
-    
-    if [[ ! -d "$GITSETU_CONFIG_DIR" ]] && [[ ! -d "$GITSETU_SSH_DIR" ]]; then
+
+    # Check if there is any GitSetu state to backup
+    local has_state=0
+    [[ -d "$GITSETU_CONFIG_DIR" ]] && has_state=1
+    if [[ "$has_state" -eq 0 ]] && [[ -f "$GITSETU_PROFILES_CONF" ]]; then
+        has_state=1
+    fi
+    if [[ "$has_state" -eq 0 ]]; then
         print_error "No GitSetu state found to backup."
         return 1
     fi
 
     local timestamp
     timestamp=$(date +%Y%m%d_%H%M%S)
-    
+
     if [[ -z "$out_file" ]]; then
         out_file="gitsetu_vault_${timestamp}.tar.gz.enc"
     fi
@@ -118,11 +154,21 @@ cmd_backup() {
     # Tar the state safely
     local temp_tar="${TMPDIR:-/tmp}/gitsetu_vault_$$_${RANDOM}.tar.gz"
     GITSETU_CLEANUP_FILES+=("$temp_tar")
-    
-    # Bundle relative paths
+
+    # Bundle: config directory + individual SSH key files from registry
     local tar_args=()
     [[ -d "$GITSETU_CONFIG_DIR" ]] && tar_args+=(".config/gitsetu")
-    [[ -d "$GITSETU_SSH_DIR" ]] && tar_args+=(".ssh/gitsetu")
+
+    local key_path
+    while IFS= read -r key_path; do
+        [[ -n "$key_path" ]] && tar_args+=("$key_path")
+    done < <(_collect_ssh_key_paths)
+
+    if [[ ${#tar_args[@]} -eq 0 ]]; then
+        print_error "No state files found to backup."
+        rm -f "$temp_tar"
+        return 1
+    fi
 
     if ! tar -czf "$temp_tar" -C "$HOME" "${tar_args[@]}" 2>/dev/null; then
         print_error "Failed to compress state directories."
@@ -131,7 +177,7 @@ cmd_backup() {
     fi
 
     printf >&2 "  %bLocking Vault%b\n" "$BOLD" "$RESET"
-    
+
     local password
     if [[ -n "${GITSETU_TEST_VAULT_PASS:-}" ]]; then
         password="$GITSETU_TEST_VAULT_PASS"
@@ -202,7 +248,7 @@ cmd_restore() {
     unset GITSETU_VAULT_PASS
 
     # Pre-Flight Safety Net
-    if [[ -d "$GITSETU_CONFIG_DIR" ]] || [[ -d "$GITSETU_SSH_DIR" ]]; then
+    if [[ -d "$GITSETU_CONFIG_DIR" ]]; then
         print_warning "Active state detected. Creating pre-restore safety backup..."
         export GITSETU_TEST_VAULT_PASS="safety_net"
         cmd_backup "gitsetu_vault_pre_restore_$(date +%Y%m%d_%H%M%S).tar.gz.enc" >/dev/null 2>&1 || return 1
@@ -212,7 +258,7 @@ cmd_restore() {
         if type teardown_all >/dev/null 2>&1; then
             teardown_all >/dev/null 2>&1 || true
         fi
-        rm -rf "$GITSETU_CONFIG_DIR" "$GITSETU_SSH_DIR"
+        rm -rf "$GITSETU_CONFIG_DIR"
     fi
 
     mkdir -p "$HOME/.config" "$HOME/.ssh"
@@ -225,19 +271,29 @@ cmd_restore() {
     rm -f "$temp_tar"
     print_success "State successfully extracted."
 
-    # Regenerate global Git and SSH state
+    # Regenerate global Git and SSH state from the restored profiles
     print_info "Regenerating global hooks and configurations..."
     if type write_global_gitconfig >/dev/null 2>&1; then
+        # Load profile data from the restored registry + gitconfig files
+        load_profiles
+
         write_global_gitconfig
-        setup_hooks
-        
-        if [[ -f "$GITSETU_PROFILES_CONF" ]]; then
-            while IFS=: read -r label email _dir provider sign_commits key_path || [[ -n "$label" ]]; do
-                [[ -z "$label" ]] || [[ "$label" == "#"* ]] && continue
-                write_profile_gitconfig "$label" "$email" "$sign_commits" "$key_path"
-                setup_ssh_config "$label" "$provider" "$key_path"
-            done < "$GITSETU_PROFILES_CONF"
+
+        # Reinstall identity guard hook
+        if type install_guard >/dev/null 2>&1; then
+            install_guard >/dev/null 2>&1 || true
         fi
+
+        # Regenerate per-profile gitconfigs (name/email sourced from restored .gitconfig files)
+        local i
+        for (( i=0; i<PROFILE_COUNT; i++ )); do
+            write_profile_gitconfig "${PROFILE_LABELS[$i]}" "${PROFILE_NAMES[$i]}" \
+                "${PROFILE_EMAILS[$i]}" "${PROFILE_SIGNS[$i]}" "${PROFILE_KEYS[$i]}" \
+                "${PROFILE_PROVIDERS[$i]}" "${PROFILE_USERS[$i]:-}"
+        done
+
+        # Regenerate SSH config (one call writes all host blocks)
+        write_ssh_config
     fi
 
     print_success "Restore complete. Your identity is active."

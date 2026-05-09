@@ -158,6 +158,8 @@ remove_profile_at_index() {
     local new_providers=()
     local new_signs=()
     local new_keys=()
+    local new_users=()
+    local new_pats=()
     
     local i
     for (( i=0; i<PROFILE_COUNT; i++ )); do
@@ -169,6 +171,8 @@ remove_profile_at_index() {
             new_providers+=("${PROFILE_PROVIDERS[$i]}")
             new_signs+=("${PROFILE_SIGNS[$i]}")
             new_keys+=("${PROFILE_KEYS[$i]}")
+            new_users+=("${PROFILE_USERS[$i]:-}")
+            new_pats+=("${PROFILE_PATS[$i]:-}")
         fi
     done
     
@@ -179,6 +183,8 @@ remove_profile_at_index() {
     PROFILE_PROVIDERS=("${new_providers[@]}")
     PROFILE_SIGNS=("${new_signs[@]}")
     PROFILE_KEYS=("${new_keys[@]}")
+    PROFILE_USERS=("${new_users[@]}")
+    PROFILE_PATS=("${new_pats[@]}")
     
     PROFILE_COUNT=$((PROFILE_COUNT - 1))
     return 0

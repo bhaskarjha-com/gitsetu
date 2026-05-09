@@ -15,7 +15,7 @@ verify_ssh_keys() {
 
     for (( i=0; i<PROFILE_COUNT; i++ )); do
         local label="${PROFILE_LABELS[$i]}"
-        local key_path="$HOME/.ssh/id_ed25519_${label}"
+        local key_path="${PROFILE_KEYS[$i]:-$HOME/.ssh/id_ed25519_${label}}"
         local pub_path="${key_path}.pub"
 
         # Private key exists?
@@ -196,7 +196,7 @@ verify_all() {
     for (( i=0; i<PROFILE_COUNT; i++ )); do
         local label="${PROFILE_LABELS[$i]}"
         local email="${PROFILE_EMAILS[$i]}"
-        local key_path="$HOME/.ssh/id_ed25519_${label}"
+        local key_path="${PROFILE_KEYS[$i]:-$HOME/.ssh/id_ed25519_${label}}"
 
         # Key status
         local key_status="${GREEN}${SYM_CHECK}${RESET}"
