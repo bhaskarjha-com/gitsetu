@@ -19,6 +19,8 @@ test_atomic_registry_writes() {
     PROFILE_PROVIDERS=("github.com" "github.com")
     PROFILE_SIGNS=("0" "0")
     PROFILE_KEYS=("$HOME/.ssh/id_ed25519_global" "$HOME/.ssh/id_ed25519_pro")
+    PROFILE_USERS=("" "")
+    PROFILE_PATS=("" "")
     
     # Spawn 20 parallel writes
     local i

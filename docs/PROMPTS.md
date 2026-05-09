@@ -34,47 +34,141 @@
 ## 1. Full Codebase Audit
 
 ```
-You are a Principal Systems Engineer performing a production-readiness audit of a pure-Bash CLI tool. Your job is to find every bug, compliance violation, and architectural flaw — especially those that tests might be masking.
+You are a Principal Systems Engineer performing a production-readiness audit of a pure-Bash CLI tool. Your job is to find every bug, compliance violation, and architectural flaw — especially those that tests might be masking. You have absolute freedom and zero bias.
 
-PROJECT: "GitSetu" — a zero-dependency, Bash 3.2+ filesystem orchestrator for Git identity and SSH management.
+PROJECT: "GitSetu" — a zero-dependency, Bash 3.2+ filesystem orchestrator for Git identity and SSH management across Linux, macOS, and Windows (Git Bash).
 LOCATION: /media/sf_dev/pro/gideon/
 WORKING DIRECTORY: Use Cwd=/media/sf_dev/pro/gideon for all shell commands.
 
-STEP 1 — BUILD CONTEXT (read in this order):
-1. README.md — Features, CLI reference, competitive claims
-2. docs/ARCHITECTURE.md — Module dependency graph, design patterns
-3. lib/core.sh — Constants, version, state arrays (PROFILE_*), load_profiles()
-4. gitsetu — Main orchestrator (note: CRLF self-healing at line ~21, gitsetu_source pattern, cmd_* dispatch)
-5. Skim every lib/*.sh file — understand each module's responsibility
+═══════════════════════════════════════════════════════════════════
+STEP 1 — BUILD CONTEXT (read in this exact order, do not skim):
+═══════════════════════════════════════════════════════════════════
 
-STEP 2 — AUTOMATED CHECKS (run these commands):
-- `make test` — Capture pass/fail counts
-- `grep -rn 'declare -A\|mapfile\|readarray\||&\|\[\[ -v ' gitsetu lib/*.sh` — Bash 4+ violations
-- `grep -rn 'sed -i\|date -d\|echo -e' gitsetu lib/*.sh` — GNU-specific / non-POSIX tools
-- `grep -rn 'eval\|exec ' gitsetu lib/*.sh` — Dangerous execution patterns
-- `grep -c 'run_test' tests/test_*.sh | awk -F: '{sum+=$2} END {print sum}'` — Actual test count
+ARCHITECTURE:
+1. README.md — Features, CLI reference table, competitive claims, section numbering
+2. docs/ARCHITECTURE.md — Module dependency graph, data flow
+3. docs/MANIFESTO.md — Non-Goals section (cross-check against shipped features)
+4. CONTRIBUTING.md — Test count claim, Bash 3.2 rules
+5. CHANGELOG.md — Version history, recent fixes
 
-STEP 3 — MANUAL AUDIT (prioritized dimensions):
-A. **Bash 3.2 Compliance**: No associative arrays, no mapfile, no ${var,,}, no |&, no [[ -v ]]
-B. **Variable Hygiene**: All variables quoted? All function-local variables declared `local`? Any undefined variables referenced?
-C. **Array Integrity**: Every parallel array (PROFILE_LABELS, _NAMES, _EMAILS, _DIRS, _PROVIDERS, _SIGNS, _KEYS, _USERS, _PATS) must be kept in sync across ALL functions that add, remove, or reload profiles
-D. **Security**: eval usage justified? Secrets ever leaked to stdout? File permissions correct (SSH keys 600)?
-E. **Idempotency**: Running `gitsetu setup` twice on an existing config must produce identical results
-F. **Cross-Platform**: stat, mktemp, awk, tr usage portable across macOS/Linux/MSYS2?
-G. **Documentation Drift**: Test count in README/CONTRIBUTING matches actual? CHANGELOG version matches core.sh?
+CORE STATE MACHINE:
+6. lib/core.sh — The 9 parallel state arrays (PROFILE_LABELS, _NAMES, _EMAILS, _DIRS, _PROVIDERS, _SIGNS, _KEYS, _USERS, _PATS), load_profiles(), remove_profile_at_index()
+7. gitsetu — Main script (~735 lines): CRLF self-healing (L16-21), gitsetu_source() eval pattern (L110-113), cmd_prompt fast-path (L65-104, intercepted BEFORE lib sourcing), global cleanup trap (L130-161), cmd_* dispatch
 
-ANTI-PATTERNS TO WATCH FOR:
-- Tests that export variables to work around undefined production variables (masking real bugs)
-- Functions referenced in one module but defined nowhere (dead calls)
-- Array rebuild loops that handle some arrays but miss others added later
-- Manual array reload loops that duplicate load_profiles() logic
+EVERY MODULE (understand each one's responsibility):
+8. lib/setup.sh — Interactive wizard, headless POSIX lock reaper
+9. lib/gitconfig.sh — includeIf injection, managed blocks, MANAGED_BLOCK env var lifecycle
+10. lib/ssh.sh — Key generation, chmod 600, FIDO2 fallback
+11. lib/backup.sh — OpenSSL vault, _collect_ssh_key_paths, GITSETU_VAULT_PASS lifecycle
+12. lib/guard.sh — Pre-commit hook (standalone script written to disk — has its own IFS parser)
+13. lib/keychain.sh — OS-native credential broker (macOS/Linux/file fallback)
+14. lib/verify.sh — Health checks, SSH connectivity spinner
+15. lib/teardown.sh — Managed block removal, deep repo stripping
+16. lib/doctor.sh — Diagnostic engine (stderr compliance critical)
+17. lib/discovery.sh — Auto-discovery, generate_initial_blueprint()
+18. lib/platform.sh — OS detection, path normalization
+19. lib/ui.sh — print_*, ask_*, confirm, color codes (all output >&2)
+20. lib/validate.sh — Label, email, path, overlap validation
+21. lib/completion.sh — Shell tab-completion (standalone, not sourced by tests)
 
-STEP 4 — SELF-VERIFY: Review your findings for false positives. For each issue, confirm the bug exists by citing the exact file, line number, and the specific code that fails.
+TESTS:
+22. tests/helpers.sh — Test framework: setup_test_home, source_gitsetu_libs(), assert_*
+23. ALL tests/test_*.sh files — Understand what IS and IS NOT tested
+
+═══════════════════════════════════════════════════════════════════
+STEP 2 — AUTOMATED DEFECT DETECTION (run every command):
+═══════════════════════════════════════════════════════════════════
+
+CATEGORY A — Bash 3.2 Compliance:
+- `grep -rn 'declare -A\|mapfile\||&\|\[\[ -v \|${[a-zA-Z_]*,,}\|${[a-zA-Z_]*^^}' lib/*.sh gitsetu` — MUST be zero
+- `grep -rn 'readarray\|coproc\|declare -n' lib/*.sh gitsetu` — Bash 4.3+ constructs
+
+CATEGORY B — State Model Integrity (9 parallel arrays):
+- `grep -rn 'PROFILE_' lib/*.sh gitsetu | grep -v 'local\|#\|PROFILE_COUNT\|PROFILE_LABELS\|PROFILE_NAMES\|PROFILE_EMAILS\|PROFILE_DIRS\|PROFILE_PROVIDERS\|PROFILE_SIGNS\|PROFILE_KEYS\|PROFILE_USERS\|PROFILE_PATS'` — Unknown array references
+- Manually verify: Does generate_initial_blueprint() initialize ALL 9 arrays? Does write_profiles_conf() output ALL 7 fields? Does load_profiles() read ALL 7 fields?
+
+CATEGORY C — IFS Field Alignment (PROVEN BUG SITE):
+- `grep -n 'IFS=:.*read' lib/*.sh gitsetu` — List ALL profile parsers
+- For EACH one: count the variables after `read -r`. profiles.conf has 7 colon-delimited fields (label:email:dir:provider:sign:key:user). Any reader that names fewer variables MUST have a catch-all variable (e.g., `_unused` or `_rest`) as the last, or the final named variable silently absorbs overflow.
+- CRITICAL: The email column (field 2) is intentionally written EMPTY by write_profiles_conf(). Any code that reads this column and expects a populated value will silently fail. The canonical email source is the profile .gitconfig file, NOT the registry.
+
+CATEGORY D — Security Surface:
+- `grep -rn 'eval\|exec ' gitsetu lib/*.sh` — Dangerous execution
+- `grep -rn 'export.*PASS\|export.*TOKEN\|export.*PAT\|export.*SECRET' lib/*.sh gitsetu` — Exported secrets (must be unset on ALL paths)
+- `grep -rn 'export MANAGED_BLOCK\|unset MANAGED_BLOCK' lib/gitconfig.sh` — Verify lifecycle complete
+- `grep -rn 'curl\|wget\|nc\|fetch ' lib/*.sh gitsetu` — Network calls (MUST be zero)
+- `grep -rn 'chmod' lib/*.sh` — SSH keys must be 600
+
+CATEGORY E — Temp File Safety & Empty Array Guards:
+- Any mktemp NOT followed by `GITSETU_CLEANUP_FILES+=()` — leak risk
+- Any `exec` NOT preceded by `gitsetu_global_cleanup()` — EXIT trap never fires after exec
+- `grep -n 'GITSETU_CLEANUP_FILES\[@\]\|GITSETU_CLEANUP_DIRS\[@\]' gitsetu` — Must use `${arr[@]+"${arr[@]}"}` pattern to survive empty arrays under `set -u` in Bash 3.2
+
+CATEGORY F — Stderr Compliance:
+- `grep -n 'printf\|echo' lib/doctor.sh | grep -v '>&2'` — Doctor stdout leaks (ALL output must go >&2)
+- `grep -n 'echo ' lib/*.sh gitsetu | grep -v '>&2\|> \|>>\|/dev/null\|#\|HOOK_SCRIPT\|EOF'` — General stdout leaks
+- Exception: cmd_prompt, cmd_credential, show_version, and discovery.sh return-value functions legitimately use stdout
+
+CATEGORY G — Documentation Drift:
+- `make test 2>&1 | grep -oP '\d+ passed' | awk -F' ' '{sum+=$1} END {print sum}'` — Actual test count
+- `grep -n 'test' CONTRIBUTING.md CHANGELOG.md | grep '[0-9]'` — Documented counts (must match)
+- `grep 'GITSETU_VERSION' lib/core.sh` — Version
+- `grep -n '^## 0\|^## [0-9]' README.md` — Section numbering (must be sequential, no duplicates)
+- Cross-check: Does MANIFESTO.md Non-Goals section contradict shipped features (e.g., credential management)?
+
+CATEGORY H — Completion & Help Sync:
+- `grep 'opts=' lib/completion.sh` — Every subcommand listed must exist in the gitsetu dispatch table
+- `grep -n '"init"\|cmd_init' gitsetu` — Ghost subcommands that don't exist
+- Verify: backup, restore, credential subcommands present in completion if shipped
+
+CATEGORY I — Test Coverage:
+- For each lib/*.sh, check if tests/test_<module>.sh exists
+- `source_gitsetu_libs()` in tests/helpers.sh — does it source all modules? (completion.sh is excluded by design)
+- Do tests cover: empty arrays, boundary values, error paths, malicious input?
+
+═══════════════════════════════════════════════════════════════════
+STEP 3 — MANUAL AUDIT (these are where real bugs hide):
+═══════════════════════════════════════════════════════════════════
+
+A. **Cross-Module Email Resolution**: Does the code that DISPLAYS a profile's email load it from the profile .gitconfig (correct) or from the empty registry column (broken)? Check every location that reads email, including cmd_status, cmd_run, verify.sh.
+
+B. **Environment Variable Lifecycle**: Any variable that is `export`ed must be `unset` after use on ALL code paths (including early returns and error branches). Check: MANAGED_BLOCK, GITSETU_VAULT_PASS, GITSETU_DEFAULT_SIGN, GITSETU_USE_PASSPHRASE.
+
+C. **generate_initial_blueprint()**: Does it initialize ALL 9 PROFILE_* arrays at every index? Missing arrays crash under `set -u` when the setup wizard reads them.
+
+D. **Test Masking**: Do any tests export variables that production doesn't? Does the test HOME isolation in helpers.sh actually prevent touching real config?
+
+E. **Cleanup Array Iteration**: Under Bash 3.2 + `set -u`, iterating `"${arr[@]}"` on an EMPTY array is a fatal error. The pattern `${arr[@]+"${arr[@]}"}` is the only safe idiom.
+
+═══════════════════════════════════════════════════════════════════
+KNOWN BUG PATTERNS FROM PAST AUDITS (look for recurrence):
+═══════════════════════════════════════════════════════════════════
+
+1. **Empty registry email column** — write_profiles_conf() writes `label::dir:...` (empty email). Any code comparing this empty string to a real email will always fail. PROVEN BUG (cmd_status ✓ indicator was permanently broken).
+2. **IFS field overflow** — Readers with 6 variables for 7 fields silently merge field 7 into field 6. PROVEN BUG.
+3. **stdout leak in diagnostic modules** — doctor.sh had 30+ printf calls to stdout instead of stderr. PROVEN BUG.
+4. **Missing array init in blueprint** — PROFILE_USERS/PATS not initialized → crash under set -u. PROVEN BUG.
+5. **Exported env var never unset** — MANAGED_BLOCK leaked profile paths to child processes. PROVEN BUG.
+6. **Empty array + set -u** — `"${arr[@]}"` crashes Bash 3.2 when array is empty. PROVEN BUG.
+7. **exec bypasses EXIT trap** — cleanup() must run before exec. PROVEN BUG.
+8. **Ghost subcommands in completion** — Tab-completion offering commands that don't exist. PROVEN BUG.
+9. **README section number duplication** — Two §07 and two §08 sections. PROVEN BUG.
+10. **Manifesto contradicts shipped code** — Non-Goals claimed "no credential management" but keychain.sh ships a full PAT broker. PROVEN BUG.
+
+═══════════════════════════════════════════════════════════════════
+STEP 4 — SELF-VERIFY (before reporting):
+═══════════════════════════════════════════════════════════════════
+
+For EACH finding:
+- Confirm the bug exists by citing the exact file, line number, and specific code
+- Rule out false positives (e.g., discovery.sh echo-to-stdout is intentional for $() return values)
+- Assess blast radius: does the same class of bug exist in sibling functions?
 
 DELIVERABLE: Create an audit report artifact with:
 1. Executive Summary (GO/NO-GO ruling)
-2. Findings table: | ID | Severity (BLOCKER/HIGH/MEDIUM/LOW) | File:Line | Description | Fix |
-3. Non-blocking polish items for post-release
+2. Findings table: | ID | Severity (CRITICAL/HIGH/MEDIUM/LOW) | Category | File:Line | Finding | Fix |
+3. Intentionally left as-is (with justification for each)
+4. Non-blocking polish items for post-release
 ```
 
 ---

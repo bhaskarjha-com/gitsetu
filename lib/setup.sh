@@ -235,23 +235,18 @@ execute_blueprint() {
         done
     fi
 
-    # 2. Write profile gitconfigs
+    # 2. Write global gitconfig
     print_section "Writing Git Configuration"
-    for (( i=0; i<PROFILE_COUNT; i++ )); do
-        write_profile_gitconfig "${PROFILE_LABELS[i]}" "${PROFILE_NAMES[i]}" "${PROFILE_EMAILS[i]}" "${PROFILE_SIGNS[i]}" "${PROFILE_KEYS[i]}"
-    done
-
-    # 3. Write global gitconfig
     write_global_gitconfig
 
-    # 4. Write SSH config
+    # 3. Write SSH config
     print_section "Updating SSH Configuration"
     write_ssh_config
 
-    # 5. Write profiles registry
+    # 4. Write profiles registry
     write_profiles_conf
 
-    # 6. Display public keys
+    # 5. Display public keys
     display_public_keys
     
     # SSH agent advice

@@ -86,7 +86,7 @@ cmd_prompt() {
                 matched_profile="$label"
             fi
         fi
-        done < "$GITSETU_PROFILES_CONF"
+    done < "$GITSETU_PROFILES_CONF"
 
     if [[ -n "$matched_profile" ]]; then
         echo "$matched_profile"

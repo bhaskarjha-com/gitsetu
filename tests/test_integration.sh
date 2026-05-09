@@ -24,8 +24,9 @@ setup_two_profiles() {
     PROFILE_KEYS=("$HOME/.ssh/id_ed25519_global" "$HOME/.ssh/id_ed25519_pro")
     PROFILE_PROVIDERS=("github.com" "github.com")
     PROFILE_SIGNS=("0" "0")
+    PROFILE_USERS=("" "")
+    PROFILE_PATS=("" "")
     PROFILE_COUNT=2
-    DEFAULT_PROFILE_INDEX=0
 
     # Create the profile directory
     mkdir -p "$HOME/dev/pro"
@@ -101,8 +102,9 @@ test_integration_idempotent_rerun() {
     PROFILE_NAMES=("Test Global" "Test Pro")
     PROFILE_EMAILS=("global@test.com" "pro@test.com")
     PROFILE_DIRS=("" "$HOME/dev/pro")
+    PROFILE_USERS=("" "")
+    PROFILE_PATS=("" "")
     PROFILE_COUNT=2
-    DEFAULT_PROFILE_INDEX=0
 
     write_global_gitconfig 2>/dev/null
     write_ssh_config 2>/dev/null

@@ -34,8 +34,9 @@ setup() {
     PROFILE_NAMES=("Global Name" "Pro Name")
     PROFILE_EMAILS=("global@example.com" "pro@example.com")
     PROFILE_DIRS=("" "$HOME/pro")
+    PROFILE_USERS=("" "")
+    PROFILE_PATS=("" "")
     PROFILE_COUNT=2
-    DEFAULT_PROFILE_INDEX=0
 
     # Ensure profile paths
     mkdir -p "$HOME/pro"

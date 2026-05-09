@@ -17,7 +17,6 @@ test_global_block_has_useconfigonly() {
     PROFILE_EMAILS=("global@test.com" "pro@test.com")
     PROFILE_DIRS=("" "/dev/pro")
     PROFILE_COUNT=2
-    DEFAULT_PROFILE_INDEX=0
 
     local block
     block=$(build_global_gitconfig_block)
@@ -31,7 +30,6 @@ test_global_block_has_includeif() {
     PROFILE_EMAILS=("g@t.com" "p@t.com")
     PROFILE_DIRS=("" "/dev/pro")
     PROFILE_COUNT=2
-    DEFAULT_PROFILE_INDEX=0
 
     local block
     block=$(build_global_gitconfig_block)
@@ -49,7 +47,6 @@ test_global_block_has_safe_directories() {
     PROFILE_EMAILS=("g@t.com" "p@t.com" "w@t.com")
     PROFILE_DIRS=("" "/dev/pro" "/dev/work")
     PROFILE_COUNT=3
-    DEFAULT_PROFILE_INDEX=0
 
     local block
     block=$(build_global_gitconfig_block)
@@ -65,7 +62,6 @@ test_global_block_has_trailing_slash() {
     PROFILE_EMAILS=("g@t.com" "w@t.com")
     PROFILE_DIRS=("" "/dev/work")
     PROFILE_COUNT=2
-    DEFAULT_PROFILE_INDEX=0
 
     local block
     block=$(build_global_gitconfig_block)
@@ -80,7 +76,6 @@ test_global_block_has_managed_markers() {
     PROFILE_EMAILS=("g@t.com")
     PROFILE_DIRS=("")
     PROFILE_COUNT=1
-    DEFAULT_PROFILE_INDEX=0
 
     local block
     block=$(build_global_gitconfig_block)
@@ -107,7 +102,6 @@ test_write_global_gitconfig_creates_file() {
     PROFILE_EMAILS=("g@t.com")
     PROFILE_DIRS=("")
     PROFILE_COUNT=1
-    DEFAULT_PROFILE_INDEX=0
 
     write_global_gitconfig 2>/dev/null
 
@@ -121,7 +115,6 @@ test_write_global_gitconfig_idempotent() {
     PROFILE_EMAILS=("g@t.com" "p@t.com")
     PROFILE_DIRS=("" "/dev/pro")
     PROFILE_COUNT=2
-    DEFAULT_PROFILE_INDEX=0
 
     write_global_gitconfig 2>/dev/null
     write_global_gitconfig 2>/dev/null
@@ -138,7 +131,6 @@ test_write_global_gitconfig_preserves_user_content() {
     PROFILE_EMAILS=("g@t.com")
     PROFILE_DIRS=("")
     PROFILE_COUNT=1
-    DEFAULT_PROFILE_INDEX=0
 
     # Pre-populate with user content
     cat > "$HOME/.gitconfig" <<'EOF'
@@ -185,7 +177,6 @@ test_path_escaping() {
     # A path that contains double quotes and backslashes
     PROFILE_DIRS=("" 'C:\Users\John"Doe\work')
     PROFILE_COUNT=2
-    DEFAULT_PROFILE_INDEX=0
 
     local block
     block=$(build_global_gitconfig_block)
@@ -211,7 +202,6 @@ test_path_injection_newlines() {
     # A path that contains explicit newlines
     PROFILE_DIRS=("" "bad_path"$'\n'"with_newline")
     PROFILE_COUNT=2
-    DEFAULT_PROFILE_INDEX=0
 
     local block
     block=$(build_global_gitconfig_block)

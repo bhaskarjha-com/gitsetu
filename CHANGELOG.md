@@ -32,6 +32,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Export Hygiene:** Changed `GITSETU_DEFAULT_SIGN` and `GITSETU_USE_PASSPHRASE` from `export` to plain shell variables to prevent unnecessary env leakage.
 - **Test Count:** Expanded from 124 to 130 tests with 6 new audit regression tests.
 
+### Fixed (Production Audit — Final Pass)
+- **Keychain Permissions Race (Security):** `keychain_store()` ran `chmod 600` before the `awk`+`mv` deduplication pass, which replaced the file inode with a umask-default (664) temp file. PAT tokens were left world-readable on systems with non-restrictive umask. Fixed by moving `chmod 600` to after all writes.
+- **Array Init Gap:** `PROFILE_USERS` and `PROFILE_PATS` were missing from the top-level module-scope declarations in `core.sh`. Any code path accessing these arrays before `load_profiles()` would crash under Bash 3.2 `set -u`.
+- **Empty Array Crash in Backup:** `_collect_ssh_key_paths()` iterated `"${key_files[@]}"` without the `${arr[@]+"${arr[@]}"}` guard. Crash risk with empty or comment-only `profiles.conf`.
+- **Double-Write Waste:** `execute_blueprint()` called `write_profile_gitconfig()` twice per profile — first without credential args, then again inside `write_profiles_conf()` with full args. Removed redundant first call.
+- **Dead Code:** Removed unused `DEFAULT_PROFILE_INDEX` variable from `core.sh` and all 13 references across test files.
+- **Prompt Indentation:** Fixed `done` keyword indentation mismatch in `cmd_prompt`.
+- **Dynamic Scoping Docs:** Added comment to `build_profile_gitconfig()` documenting that `provider`/`provider_user` are accessed via Bash dynamic scoping from the caller.
+
+### Added
+- **test_core.sh (18 tests):** Unit tests for `to_lower`, `array_contains`, `load_profiles` (basic, empty, comments-only, missing, multi-profile), `remove_profile_at_index` (basic, last, to-empty, out-of-bounds), and top-level 9-array initialization.
+- **test_keychain.sh (7 tests):** File-fallback credential storage roundtrip, overwrite dedup, erase, profile isolation, and 600-permission enforcement.
+- **test_verify.sh (8 tests):** SSH key verification (all-ok, missing private/public, wrong perms), git config checks, and `verify_all` stderr-only compliance.
+- **Test Count:** Expanded from 130 to 163 tests.
+
 ### Fixed (Zero-Defect Audit)
 - **Status Indicator (Critical):** `gitsetu status` active identity checkmark (✓) was permanently broken. The profiles.conf registry intentionally writes an empty email column, but `cmd_status` compared that empty string to the current git email — guaranteed mismatch. Now loads email from the profile `.gitconfig` file.
 - **Doctor Stdout Leak (Critical):** All 30+ `printf` calls in `run_doctor()` wrote to stdout instead of stderr, violating the project convention that stdout is reserved for machine-readable output. Fixed all to `>&2`.

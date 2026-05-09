@@ -36,7 +36,6 @@ keychain_store() {
     # Fallback to local file if OS tools are missing or unsupported (WSL/GitBash)
     local tokens_file="$HOME/.config/gitsetu/.tokens"
     touch "$tokens_file"
-    chmod 600 "$tokens_file"
     
     # Remove existing entry
     if [[ -f "$tokens_file" ]]; then
@@ -48,6 +47,8 @@ keychain_store() {
     
     # Append new entry (service_name:username:token)
     echo "${service_name}:${username}:${token}" >> "$tokens_file"
+    # Set restrictive permissions AFTER all writes (mv replaces inode, so chmod must come last)
+    chmod 600 "$tokens_file"
     return 0
 }
 

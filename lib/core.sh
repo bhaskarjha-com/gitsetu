@@ -48,8 +48,9 @@ PROFILE_DIRS=()
 PROFILE_PROVIDERS=()
 PROFILE_SIGNS=()
 PROFILE_KEYS=()
+PROFILE_USERS=()
+PROFILE_PATS=()
 PROFILE_COUNT=0
-DEFAULT_PROFILE_INDEX=0
 
 # ------------------------------------------------------------------------------
 # Runtime state

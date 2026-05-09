@@ -122,7 +122,7 @@ _collect_ssh_key_paths() {
     fi
 
     local kf
-    for kf in "${key_files[@]}"; do
+    for kf in ${key_files[@]+"${key_files[@]}"}; do
         printf '%s\n' "$kf"
     done
 }
