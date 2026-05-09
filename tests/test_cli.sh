@@ -5,8 +5,8 @@ set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/helpers.sh"
 setup_test_home
 
-# We need the path to the actual executable
-GITSETU_EXE="$(dirname "${BASH_SOURCE[0]}")/../gitsetu"
+# We need the absolute path to the executable (tests may cd elsewhere)
+GITSETU_EXE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/gitsetu"
 GITSETU_EXE="${GITSETU_EXE%$'\r'}"
 
 test_cli_no_args_shows_help() {
@@ -59,6 +59,22 @@ test_cli_array_loop_crash_prevention() {
     assert_not_contains "$output" "bad array subscript" "survives 0 profile state without array subscript crash" || return 1
 }
 
+test_cli_7field_profile_parsing() {
+    # Regression test: profiles.conf has 7 fields (provider_user is the 7th).
+    # Before the fix, 6-field IFS readers merged provider_user into key_path,
+    # corrupting SSH paths when HTTPS credentials were configured.
+    mkdir -p "$HOME/.config/gitsetu" "$HOME/.ssh" "$HOME/work/repo"
+    touch "$HOME/.ssh/id_ed25519_work"
+    cat > "$HOME/.config/gitsetu/profiles.conf" <<EOF
+work:work@corp.com:$HOME/work:github.com:0:$HOME/.ssh/id_ed25519_work:myghuser
+EOF
+    # cd at function scope so bash inherits the real working directory
+    cd "$HOME/work/repo"
+    local output
+    output=$(bash "$GITSETU_EXE" prompt 2>/dev/null)
+    assert_equals "work" "$output" "prompt returns clean label with 7-field profiles.conf" || return 1
+}
+
 printf '\n%btest_cli.sh%b\n' "$T_BOLD" "$T_RESET"
 run_test "no arguments shows help" test_cli_no_args_shows_help
 run_test "invalid command caught" test_cli_invalid_command
@@ -67,4 +83,5 @@ run_test "add with invalid label caught" test_cli_add_invalid_label
 run_test "remove with missing args caught" test_cli_remove_invalid_arg
 run_test "--help prints menu and exits 0" test_cli_help_flag
 run_test "empty registry array loop safety" test_cli_array_loop_crash_prevention
+run_test "7-field profiles.conf parsing" test_cli_7field_profile_parsing
 print_results "CLI tests"

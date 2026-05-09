@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Vault Security:** Replaced hardcoded `safety_net` password in pre-restore vault with random password from `/dev/urandom`, stored in adjacent `.password` file.
 - **Error Visibility:** `cmd_remove` now checks return codes from `write_global_gitconfig` and `write_ssh_config`, warning the user instead of silently swallowing failures.
 - **README Accuracy:** Corrected false claim that SSH keys are stored under `~/.ssh/gitsetu/` — they're at `~/.ssh/id_ed25519_<label>`.
+- **Field Overflow Fix:** All `IFS=:` profile readers in gitsetu and guard.sh now parse all 7 fields, preventing the `provider_user` field from silently merging into `key_path` and corrupting SSH operations.
+- **Test Path Resolution:** Fixed `test_cli.sh` to use absolute path for `GITSETU_EXE`, preventing path resolution failures when tests `cd` to different directories.
 
 ### Changed
 - **Prompt Library:** Overhauled all 18 prompts in `docs/PROMPTS.md` using context engineering best practices (PCRF pattern, role personas, anti-pattern sections).
@@ -46,7 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **FIDO2 / YubiKey Hardware Bootstrapping:** Support for `ed25519-sk` generation with automatic fallback to software keys.
 - **Sub-millisecond Shell Prompt:** `gitsetu prompt` feature for native `$PS1` integration without spawning expensive subshells.
 - **Custom SSH Key Paths:** Natively map and link arbitrary existing SSH keys in `~/.gitconfig`.
-- **Enhanced Testing:** Comprehensive 123-test sandbox matrix simulating the complete Git credential lifecycle.
+- **Enhanced Testing:** Comprehensive 124-test sandbox matrix simulating the complete Git credential lifecycle.
 - **Enterprise DevOps Architecture:** Introduced strict `dependabot` configuration, `SECURITY.md`, and robust CI linting.
 
 ### Changed

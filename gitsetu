@@ -74,7 +74,7 @@ cmd_prompt() {
     local max_len=0
 
     # Prefix match without subshells
-    while IFS=: read -r label email dir provider sign_commits key_path || [[ -n "$label" ]]; do
+    while IFS=: read -r label email dir provider sign_commits key_path _unused || [[ -n "$label" ]]; do
         [[ -z "$dir" ]] && continue
         
         # Check if PWD starts with the profile dir
@@ -260,7 +260,7 @@ cmd_status() {
     if [[ -f "$GITSETU_PROFILES_CONF" ]]; then
         print_section "Configured Profiles"
 
-        while IFS=: read -r label email dir provider sign_commits key_path || [[ -n "$label" ]]; do
+        while IFS=: read -r label email dir provider sign_commits key_path _unused || [[ -n "$label" ]]; do
             [[ "$label" == "#"* ]] && continue
             [[ -z "$label" ]] && continue
             
@@ -415,7 +415,7 @@ cmd_run() {
 
     local found=0
     local found_key_path=""
-    while IFS=: read -r label email dir provider sign_commits key_path || [[ -n "$label" ]]; do
+    while IFS=: read -r label email dir provider sign_commits key_path _unused || [[ -n "$label" ]]; do
         if [[ "$label" == "$profile" ]]; then
             found=1
             found_key_path="${key_path:-$HOME/.ssh/id_ed25519_${label}}"
@@ -472,7 +472,7 @@ cmd_remove() {
     # Check if profile exists
     local found=0
     local found_key_path=""
-    while IFS=: read -r label email dir provider sign_commits key_path || [[ -n "$label" ]]; do
+    while IFS=: read -r label email dir provider sign_commits key_path _unused || [[ -n "$label" ]]; do
         if [[ "$label" == "$profile" ]]; then
             found=1
             found_key_path="${key_path:-$HOME/.ssh/id_ed25519_${label}}"
