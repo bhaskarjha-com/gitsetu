@@ -45,7 +45,7 @@ run_doctor() {
     if command -v git >/dev/null 2>&1; then
         resolved_name=$(git config user.name 2>/dev/null || echo "(Not Configured)")
         resolved_email=$(git config user.email 2>/dev/null || echo "(Not Configured)")
-        resolved_key=$(git config core.sshCommand 2>/dev/null | sed -E 's/.*-i ([^ ]+).*/\1/' || echo "(Not Configured)")
+        resolved_key=$(git config core.sshCommand 2>/dev/null | awk -F '-i ' '{print $2}' | awk '{print $1}' || echo "(Not Configured)")
         
         printf "    Resolved Name: %s\n" "$resolved_name"
         printf "    Resolved Email: %s\n" "$resolved_email"

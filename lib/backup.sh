@@ -116,8 +116,7 @@ cmd_backup() {
     fi
 
     # Tar the state safely
-    local temp_tar
-    temp_tar=$(mktemp)
+    local temp_tar="${TMPDIR:-/tmp}/gitsetu_vault_$$_${RANDOM}.tar.gz"
     GITSETU_CLEANUP_FILES+=("$temp_tar")
     
     # Bundle relative paths
@@ -190,8 +189,7 @@ cmd_restore() {
     read -r -a extra_args <<< "$(get_openssl_args)"
     ssl_args+=("${extra_args[@]}")
 
-    local temp_tar
-    temp_tar=$(mktemp)
+    local temp_tar="${TMPDIR:-/tmp}/gitsetu_vault_$$_${RANDOM}.tar.gz"
     GITSETU_CLEANUP_FILES+=("$temp_tar")
 
     export GITSETU_VAULT_PASS="$password"

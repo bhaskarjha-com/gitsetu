@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Array Integrity:** Fixed missing bounds check in `remove_profile_at_index` and replaced unstable `seq` dependencies with strict Bash C-style loops.
 - **Subshell Latency:** Intercepted the `gitsetu prompt` evaluation before library sourcing, dropping PS1 terminal latency from ~95ms to ~16ms.
 - **Installer Precision:** Fixed the internal fallback `REPO_URL` inside `install.sh` to correctly point to `gitsetu.git`.
+- **Global Trap Ownership:** The `EXIT` trap now mathematically verifies POSIX lock ownership (`cat pid == $$`) before deletion, securing parallel CI pipelines from cross-process lock corruption.
+- **Micro-TOCTOU Elimination:** Abandoned `mktemp` in favor of pre-registering randomized `$TMPDIR` paths in the cleanup array *before* disk generation, completely eliminating temporary file leaks during `SIGINT` interruption.
+- **Strict POSIX Portability:** Replaced GNU/BSD specific `sed -E` flags with standard `awk` extraction in `gitsetu doctor` to guarantee execution on legacy Unix variants (Solaris, AIX).
 
 ## [1.1.0] - 2026-05-02
 

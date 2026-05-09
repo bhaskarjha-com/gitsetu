@@ -138,6 +138,15 @@ gitsetu_global_cleanup() {
         rm -f "$f" 2>/dev/null || true
     done
     for d in "${GITSETU_CLEANUP_DIRS[@]}"; do
+        if [[ "$d" == *.lock ]]; then
+            if [[ -f "$d/pid" ]]; then
+                local lock_owner
+                lock_owner=$(cat "$d/pid" 2>/dev/null || echo "")
+                if [[ "$lock_owner" != "$$" ]]; then
+                    continue # We do not own this lock. Do not delete it.
+                fi
+            fi
+        fi
         rmdir "$d" 2>/dev/null || true
     done
 }

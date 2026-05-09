@@ -40,8 +40,8 @@ keychain_store() {
     
     # Remove existing entry
     if [[ -f "$tokens_file" ]]; then
-        local tmp_file
-        tmp_file=$(mktemp)
+        local tmp_file="${TMPDIR:-/tmp}/gitsetu_tokens_$$_${RANDOM}"
+        GITSETU_CLEANUP_FILES+=("$tmp_file")
         awk -v s="$service_name" -F':' '$1":"$2":"$3 != s' "$tokens_file" > "$tmp_file"
         mv "$tmp_file" "$tokens_file"
     fi
@@ -151,8 +151,8 @@ keychain_erase() {
     # Fallback to local file
     local tokens_file="$HOME/.config/gitsetu/.tokens"
     if [[ -f "$tokens_file" ]]; then
-        local tmp_file
-        tmp_file=$(mktemp)
+        local tmp_file="${TMPDIR:-/tmp}/gitsetu_tokens_$$_${RANDOM}"
+        GITSETU_CLEANUP_FILES+=("$tmp_file")
         awk -v s="$service_name" -F':' '$1":"$2":"$3 != s' "$tokens_file" > "$tmp_file"
         mv "$tmp_file" "$tokens_file"
     fi
