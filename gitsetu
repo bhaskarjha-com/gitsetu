@@ -152,6 +152,7 @@ gitsetu_global_cleanup() {
 }
 
 cleanup() {
+    stty echo 2>/dev/null || true  # Restore terminal echo if interrupted during password entry
     printf >&2 '\n'
     print_warning "Interrupted. No changes were made (or partial changes were backed up)."
     gitsetu_global_cleanup

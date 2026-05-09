@@ -182,9 +182,10 @@ cmd_backup() {
     if [[ -n "${GITSETU_TEST_VAULT_PASS:-}" ]]; then
         password="$GITSETU_TEST_VAULT_PASS"
     else
-        password=$(ask_password "Enter a strong password to encrypt the vault: ")
-        local confirm
-        confirm=$(ask_password "Confirm password: ")
+        ask_password "Enter a strong password to encrypt the vault: "
+        password="$REPLY"
+        ask_password "Confirm password: "
+        local confirm="$REPLY"
 
         if [[ "$password" != "$confirm" ]]; then
             print_error "Passwords do not match. Backup aborted."
@@ -228,7 +229,8 @@ cmd_restore() {
     if [[ -n "${GITSETU_TEST_VAULT_PASS:-}" ]]; then
         password="$GITSETU_TEST_VAULT_PASS"
     else
-        password=$(ask_password "Enter vault password: ")
+        ask_password "Enter vault password: "
+        password="$REPLY"
     fi
 
     local ssl_args=("-d" "-aes-256-cbc" "-salt")

@@ -16,7 +16,7 @@ No build step. No dependencies to install.
 We use a standard `Makefile` to orchestrate our test suite.
 
 ```bash
-# Run the entire 163-test sandbox matrix
+# Run the entire 165-test sandbox matrix
 make test
 ```
 
@@ -47,6 +47,8 @@ macOS ships bash 3.2. Do **NOT** use these bash 4+ features:
 | `mapfile` / `readarray` | `while IFS= read -r` loops |
 | `${var,,}` (lowercase) | `printf '%s' "$var" \| tr '[:upper:]' '[:lower:]'` |
 | `|&` (pipe stderr) | `2>&1 \|` |
+
+> **Note:** `read -a` (read into array), `<<<` (here-strings), and `[[ ]]` (conditional expressions) **are** permitted — these are Bash 3.2 features, not Bash 4+ additions. The compatibility floor is Bash 3.2, not POSIX `sh`.
 
 ### Quoting
 

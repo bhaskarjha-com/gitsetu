@@ -109,7 +109,7 @@ Author: Aditya Kumar <aditya@company.com> ← correct, automatically
 GitSetu provides rich <kbd>TAB</kbd> autocompletion for subcommands and profile names.
 Add the following to your `~/.bashrc` or `~/.zshrc`:
 ```bash
-source ~/.local/bin/completion.sh # or the path where gitsetu is installed
+source ~/.local/share/gitsetu/lib/completion.sh
 ```
 
 ### Shell Prompt Integration (`$PS1`)

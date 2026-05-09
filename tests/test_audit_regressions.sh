@@ -177,6 +177,42 @@ test_f09_empty_cleanup_arrays_safe() {
 }
 
 # ==============================================================================
+# C01: ask_password must NOT be called via command substitution $()
+#      because it sets $REPLY (lost in subshell) and prints nothing to stdout
+# ==============================================================================
+test_c01_ask_password_not_in_subshell() {
+    local backup_file="$SCRIPT_DIR/../lib/backup.sh"
+
+    # Grep for the broken pattern: $(ask_password ...)
+    local violations
+    violations=$(grep -c '$(ask_password' "$backup_file" 2>/dev/null | tr -d '\r') || true
+
+    if [[ "$violations" -gt 0 ]]; then
+        printf '    FAIL: ask_password called via command substitution (%s times)\n' "$violations"
+        printf '    This silently discards $REPLY. Use: ask_password "..."; var="$REPLY"\n'
+        return 1
+    fi
+    return 0
+}
+
+# ==============================================================================
+# S01: cleanup trap must restore stty echo to prevent stuck terminal
+# ==============================================================================
+test_s01_cleanup_restores_stty() {
+    local gitsetu_file="$SCRIPT_DIR/../gitsetu"
+
+    # The cleanup() function must contain stty echo
+    local has_stty
+    has_stty=$(grep -A5 'cleanup()' "$gitsetu_file" | grep -c 'stty echo' | tr -d '\r') || true
+
+    if [[ "$has_stty" -eq 0 ]]; then
+        printf '    FAIL: cleanup() does not restore stty echo\n'
+        return 1
+    fi
+    return 0
+}
+
+# ==============================================================================
 # Run all regression tests
 # ==============================================================================
 run_test "F01: cmd_status loads email from profile gitconfig" test_f01_status_loads_email_from_gitconfig
@@ -185,5 +221,8 @@ run_test "F03: generate_initial_blueprint initializes all 9 arrays" test_f03_blu
 run_test "F04: MANAGED_BLOCK env var is unset after use" test_f04_managed_block_not_leaked
 run_test "F07: completion offers no ghost subcommands" test_f07_completion_no_ghost_subcommands
 run_test "F09: empty cleanup arrays survive set -u" test_f09_empty_cleanup_arrays_safe
+run_test "C01: ask_password not called via subshell capture" test_c01_ask_password_not_in_subshell
+run_test "S01: cleanup trap restores stty echo" test_s01_cleanup_restores_stty
 
 print_results "Audit Regression tests"
+

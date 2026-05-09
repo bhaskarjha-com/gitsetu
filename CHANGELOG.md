@@ -45,7 +45,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **test_core.sh (18 tests):** Unit tests for `to_lower`, `array_contains`, `load_profiles` (basic, empty, comments-only, missing, multi-profile), `remove_profile_at_index` (basic, last, to-empty, out-of-bounds), and top-level 9-array initialization.
 - **test_keychain.sh (7 tests):** File-fallback credential storage roundtrip, overwrite dedup, erase, profile isolation, and 600-permission enforcement.
 - **test_verify.sh (8 tests):** SSH key verification (all-ok, missing private/public, wrong perms), git config checks, and `verify_all` stderr-only compliance.
-- **Test Count:** Expanded from 130 to 163 tests.
+- **Test Count:** Expanded from 130 to 165 tests.
+
+### Fixed (Go/No-Go Audit)
+- **Vault Empty Password (Security — C-01):** `ask_password()` stores its result in global `$REPLY` and prints nothing to stdout. Calling it via `password=$(ask_password ...)` ran it in a subshell where `$REPLY` was discarded, causing interactive vault encryption to use an **empty password**. Fixed by using direct invocation + `$REPLY` capture.
+- **Terminal Echo Restoration (S-01):** If `SIGINT` fired during `ask_password()` (between `stty -echo` and `stty echo`), the terminal was stuck in no-echo mode. Added `stty echo 2>/dev/null || true` to the `cleanup()` trap.
+- **Completion Path in README (DX-01):** README instructed `source ~/.local/bin/completion.sh` but the actual installed path is `~/.local/share/gitsetu/lib/completion.sh`.
+- **Bash 3.2 Compatibility Docs (A-01):** Added note to CONTRIBUTING.md clarifying that `read -a`, `<<<`, and `[[ ]]` are permitted Bash 3.2 features (vs. prohibited Bash 4+ constructs).
 
 ### Fixed (Zero-Defect Audit)
 - **Status Indicator (Critical):** `gitsetu status` active identity checkmark (✓) was permanently broken. The profiles.conf registry intentionally writes an empty email column, but `cmd_status` compared that empty string to the current git email — guaranteed mismatch. Now loads email from the profile `.gitconfig` file.
