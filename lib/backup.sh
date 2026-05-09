@@ -250,9 +250,16 @@ cmd_restore() {
     # Pre-Flight Safety Net
     if [[ -d "$GITSETU_CONFIG_DIR" ]]; then
         print_warning "Active state detected. Creating pre-restore safety backup..."
-        export GITSETU_TEST_VAULT_PASS="safety_net"
-        cmd_backup "gitsetu_vault_pre_restore_$(date +%Y%m%d_%H%M%S).tar.gz.enc" >/dev/null 2>&1 || return 1
+        local safety_pass
+        safety_pass=$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n' | head -c 32)
+        local safety_file="gitsetu_vault_pre_restore_$(date +%Y%m%d_%H%M%S).tar.gz.enc"
+        export GITSETU_TEST_VAULT_PASS="$safety_pass"
+        cmd_backup "$safety_file" >/dev/null 2>&1 || return 1
         unset GITSETU_TEST_VAULT_PASS
+        # Store password adjacent to vault so user can recover if needed
+        printf '%s\n' "$safety_pass" > "${safety_file}.password"
+        chmod 600 "${safety_file}.password"
+        print_info "Safety vault: $safety_file (password in ${safety_file}.password)"
         
         # Teardown current global configs to avoid duplicate block drift
         if type teardown_all >/dev/null 2>&1; then

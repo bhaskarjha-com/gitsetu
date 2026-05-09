@@ -176,15 +176,15 @@ remove_profile_at_index() {
         fi
     done
     
-    PROFILE_LABELS=("${new_labels[@]}")
-    PROFILE_NAMES=("${new_names[@]}")
-    PROFILE_EMAILS=("${new_emails[@]}")
-    PROFILE_DIRS=("${new_dirs[@]}")
-    PROFILE_PROVIDERS=("${new_providers[@]}")
-    PROFILE_SIGNS=("${new_signs[@]}")
-    PROFILE_KEYS=("${new_keys[@]}")
-    PROFILE_USERS=("${new_users[@]}")
-    PROFILE_PATS=("${new_pats[@]}")
+    PROFILE_LABELS=(${new_labels[@]+"${new_labels[@]}"})
+    PROFILE_NAMES=(${new_names[@]+"${new_names[@]}"})
+    PROFILE_EMAILS=(${new_emails[@]+"${new_emails[@]}"})
+    PROFILE_DIRS=(${new_dirs[@]+"${new_dirs[@]}"})
+    PROFILE_PROVIDERS=(${new_providers[@]+"${new_providers[@]}"})
+    PROFILE_SIGNS=(${new_signs[@]+"${new_signs[@]}"})
+    PROFILE_KEYS=(${new_keys[@]+"${new_keys[@]}"})
+    PROFILE_USERS=(${new_users[@]+"${new_users[@]}"})
+    PROFILE_PATS=(${new_pats[@]+"${new_pats[@]}"})
     
     PROFILE_COUNT=$((PROFILE_COUNT - 1))
     return 0

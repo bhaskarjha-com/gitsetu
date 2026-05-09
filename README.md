@@ -39,7 +39,7 @@ Every solution requires Node, Python, or a background daemon watching your files
 GitSetu automatically manages multiple Git identities and SSH keys on a single machine. It provisions distinct keys, injects directory-based conditional configs, and writes SSH host aliases — so you never accidentally commit as the wrong author ever again.
 
 1. **You declare an identity:** Run `gitsetu add`. Name, email, directory scope.
-2. **GitSetu provisions a dedicated SSH key:** Generates a unique ED25519 SSH keypair cleanly stored under `~/.ssh/gitsetu/`. No shared keys between accounts.
+2. **GitSetu provisions a dedicated SSH key:** Generates a unique ED25519 SSH keypair per profile (`~/.ssh/id_ed25519_<label>`). No shared keys between accounts.
 3. **Writes a scoped `~/.gitconfig` include:** Injects an `includeIf` block that activates your name and email — only inside that directory tree.
 4. **Creates an SSH host alias:** Writes a `Host` block in `~/.ssh/config`. 
 

@@ -446,6 +446,9 @@ cmd_run() {
     export GIT_COMMITTER_EMAIL="$email"
     export GIT_SSH_COMMAND="ssh -i ${found_key_path}"
     
+    # exec replaces this process — EXIT trap will never fire.
+    # Flush any registered temp files before handoff.
+    gitsetu_global_cleanup
     exec "$@"
 }
 
@@ -506,8 +509,12 @@ cmd_remove() {
     load_profiles
     
     # 4. Re-run block generators (idempotent, they will overwrite the global configs without the removed profile)
-    write_global_gitconfig >/dev/null
-    write_ssh_config >/dev/null
+    if ! write_global_gitconfig >/dev/null; then
+        print_warning "Failed to regenerate ~/.gitconfig. Run 'gitsetu setup' to repair."
+    fi
+    if ! write_ssh_config >/dev/null; then
+        print_warning "Failed to regenerate ~/.ssh/config. Run 'gitsetu setup' to repair."
+    fi
     
     print_success "Profile '$profile' successfully removed."
     
@@ -567,18 +574,19 @@ cmd_credential() {
         return 0
     fi
 
-    detect_os
-
     case "$action" in
         get)
+            detect_os
             keychain_get "$profile" "$host"
             ;;
         store)
             if [[ -n "$username" ]] && [[ -n "$password" ]]; then
+                detect_os
                 keychain_store "$profile" "$host" "$username" "$password"
             fi
             ;;
         erase)
+            detect_os
             keychain_erase "$profile" "$host"
             ;;
     esac
