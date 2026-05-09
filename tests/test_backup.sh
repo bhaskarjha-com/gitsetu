@@ -156,7 +156,7 @@ EOF
         return 1
     fi
     
-    rm -f "$vault_file" gitsetu_vault_pre_restore_*.enc
+    rm -f "$vault_file" gitsetu_vault_pre_restore_*.enc gitsetu_vault_pre_restore_*.password
     unset GITSETU_TEST_VAULT_PASS
     return 0
 }

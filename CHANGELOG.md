@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- **Backup Registry Integrity:** Replaced undefined `GITSETU_SSH_DIR` reference with `_collect_ssh_key_paths()` that dynamically enumerates SSH key paths from profiles.conf.
+- **Restore Lifecycle:** Refactored `cmd_restore` to use `load_profiles()` and standard helpers instead of dead function calls.
+- **Registry Sync:** Added `PROFILE_USERS` and `PROFILE_PATS` arrays to `remove_profile_at_index()` rebuild loop, preventing credential state desync.
+- **Profile Removal:** Replaced manual array reload in `cmd_remove` with `load_profiles()` to prevent index misalignment.
+- **Verify Portability:** Corrected `verify.sh` to use `PROFILE_KEYS` array instead of hardcoded paths, supporting FIDO2 and custom SSH key locations.
+- **Empty Array Safety:** Guarded `remove_profile_at_index()` against Bash 3.2 `set -u` crash when arrays become empty after removal.
+- **Cleanup Leak:** Added `gitsetu_global_cleanup()` call before `exec` in `cmd_run` since `exec` replaces the process and the EXIT trap never fires.
+- **Credential Latency:** Moved `detect_os()` inside `cmd_credential` case branches to avoid unnecessary platform detection on early-exit paths.
+- **Vault Security:** Replaced hardcoded `safety_net` password in pre-restore vault with random password from `/dev/urandom`, stored in adjacent `.password` file.
+- **Error Visibility:** `cmd_remove` now checks return codes from `write_global_gitconfig` and `write_ssh_config`, warning the user instead of silently swallowing failures.
+- **README Accuracy:** Corrected false claim that SSH keys are stored under `~/.ssh/gitsetu/` — they're at `~/.ssh/id_ed25519_<label>`.
+
+### Changed
+- **Prompt Library:** Overhauled all 18 prompts in `docs/PROMPTS.md` using context engineering best practices (PCRF pattern, role personas, anti-pattern sections).
+- Added 2 new prompts: Performance Profiling (#17) and UX/DX Audit (#18).
+
 ## [1.1.1] - 2026-05-07
 
 ### Fixed
@@ -27,7 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **FIDO2 / YubiKey Hardware Bootstrapping:** Support for `ed25519-sk` generation with automatic fallback to software keys.
 - **Sub-millisecond Shell Prompt:** `gitsetu prompt` feature for native `$PS1` integration without spawning expensive subshells.
 - **Custom SSH Key Paths:** Natively map and link arbitrary existing SSH keys in `~/.gitconfig`.
-- **Enhanced Testing:** Comprehensive 121-test sandbox matrix simulating the complete Git credential lifecycle.
+- **Enhanced Testing:** Comprehensive 123-test sandbox matrix simulating the complete Git credential lifecycle.
 - **Enterprise DevOps Architecture:** Introduced strict `dependabot` configuration, `SECURITY.md`, and robust CI linting.
 
 ### Changed
