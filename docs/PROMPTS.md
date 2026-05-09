@@ -76,11 +76,22 @@ TESTS:
 23. ALL tests/test_*.sh files — Understand what IS and IS NOT tested
 
 ═══════════════════════════════════════════════════════════════════
-STEP 2 — AUTOMATED DEFECT DETECTION (run every command):
+STEP 2 — STATIC ANALYSIS (run ShellCheck FIRST — non-negotiable):
+═══════════════════════════════════════════════════════════════════
+
+MANDATORY: If ShellCheck is not installed, install it FIRST:
+- `which shellcheck || sudo apt-get install -y shellcheck`
+- Then run: `make lint 2>&1` — MUST exit 0 with zero warnings
+- If `make lint` is not available: `shellcheck --shell=bash --severity=info gitsetu lib/*.sh tests/*.sh install.sh uninstall.sh`
+- Every SC warning must be resolved or explicitly `# shellcheck disable=SCXXXX` with justification
+- ShellCheck directives CANNOT go inside case branches (SC1124) — place them before the `case` statement
+
+═══════════════════════════════════════════════════════════════════
+STEP 3 — AUTOMATED DEFECT DETECTION (run every command):
 ═══════════════════════════════════════════════════════════════════
 
 CATEGORY A — Bash 3.2 Compliance:
-- `grep -rn 'declare -A\|mapfile\||&\|\[\[ -v \|${[a-zA-Z_]*,,}\|${[a-zA-Z_]*^^}' lib/*.sh gitsetu` — MUST be zero
+- `grep -rn 'declare -A\|mapfile\||\&\|\[\[ -v \|${[a-zA-Z_]*,,}\|${[a-zA-Z_]*^^}' lib/*.sh gitsetu` — MUST be zero
 - `grep -rn 'readarray\|coproc\|declare -n' lib/*.sh gitsetu` — Bash 4.3+ constructs
 
 CATEGORY B — State Model Integrity (9 parallel arrays):
@@ -97,7 +108,9 @@ CATEGORY D — Security Surface:
 - `grep -rn 'export.*PASS\|export.*TOKEN\|export.*PAT\|export.*SECRET' lib/*.sh gitsetu` — Exported secrets (must be unset on ALL paths)
 - `grep -rn 'export MANAGED_BLOCK\|unset MANAGED_BLOCK' lib/gitconfig.sh` — Verify lifecycle complete
 - `grep -rn 'curl\|wget\|nc\|fetch ' lib/*.sh gitsetu` — Network calls (MUST be zero)
-- `grep -rn 'chmod' lib/*.sh` — SSH keys must be 600
+- `grep -rn 'chmod' lib/*.sh` — Verify chmod ordering: `chmod 600` must come AFTER all file writes (awk/mv/echo). If chmod runs before mv, the mv replaces the inode and discards permissions. PROVEN BUG.
+- **Subshell Capture Pattern**: `grep -rn '=$(ask_password\|=$(ask_required\|=$(ask ' lib/*.sh gitsetu` — Functions that store results in `$REPLY` MUST NOT be called via `$(...)` command substitution, because `$REPLY` is set inside the subshell and discarded when it exits. The correct pattern is: `ask_password "prompt"; var="$REPLY"`. PROVEN BUG.
+- **Terminal State Safety**: Check if `ask_password()` uses `stty -echo`. If so, the global `cleanup()` trap MUST include `stty echo 2>/dev/null || true` to restore terminal echo on SIGINT. PROVEN BUG.
 
 CATEGORY E — Temp File Safety & Empty Array Guards:
 - Any mktemp NOT followed by `GITSETU_CLEANUP_FILES+=()` — leak risk
@@ -115,6 +128,8 @@ CATEGORY G — Documentation Drift:
 - `grep 'GITSETU_VERSION' lib/core.sh` — Version
 - `grep -n '^## 0\|^## [0-9]' README.md` — Section numbering (must be sequential, no duplicates)
 - Cross-check: Does MANIFESTO.md Non-Goals section contradict shipped features (e.g., credential management)?
+- **Path Verification**: Verify every path mentioned in README.md (especially shell completion `source` path, install paths) actually matches what `install.sh` creates. PROVEN BUG.
+- **Test Count Sync**: Verify CONTRIBUTING.md, CHANGELOG.md, and docs/PROMPTS.md all reference the same test count as `make test` output.
 
 CATEGORY H — Completion & Help Sync:
 - `grep 'opts=' lib/completion.sh` — Every subcommand listed must exist in the gitsetu dispatch table
@@ -125,9 +140,10 @@ CATEGORY I — Test Coverage:
 - For each lib/*.sh, check if tests/test_<module>.sh exists
 - `source_gitsetu_libs()` in tests/helpers.sh — does it source all modules? (completion.sh is excluded by design)
 - Do tests cover: empty arrays, boundary values, error paths, malicious input?
+- **Test-Only Code Paths**: Identify any test bypass variables (e.g., `GITSETU_TEST_VAULT_PASS`) and verify the production code path they bypass is ALSO tested. If a bypass exists, the non-bypass path may hide bugs that tests never exercise. PROVEN BUG.
 
 ═══════════════════════════════════════════════════════════════════
-STEP 3 — MANUAL AUDIT (these are where real bugs hide):
+STEP 4 — MANUAL AUDIT (these are where real bugs hide):
 ═══════════════════════════════════════════════════════════════════
 
 A. **Cross-Module Email Resolution**: Does the code that DISPLAYS a profile's email load it from the profile .gitconfig (correct) or from the empty registry column (broken)? Check every location that reads email, including cmd_status, cmd_run, verify.sh.
@@ -136,9 +152,13 @@ B. **Environment Variable Lifecycle**: Any variable that is `export`ed must be `
 
 C. **generate_initial_blueprint()**: Does it initialize ALL 9 PROFILE_* arrays at every index? Missing arrays crash under `set -u` when the setup wizard reads them.
 
-D. **Test Masking**: Do any tests export variables that production doesn't? Does the test HOME isolation in helpers.sh actually prevent touching real config?
+D. **Test Masking**: Do any tests export variables that production doesn't? Does the test HOME isolation in helpers.sh actually prevent touching real config? Do test bypass paths (e.g., `GITSETU_TEST_VAULT_PASS`) hide bugs in the interactive code path?
 
 E. **Cleanup Array Iteration**: Under Bash 3.2 + `set -u`, iterating `"${arr[@]}"` on an EMPTY array is a fatal error. The pattern `${arr[@]+"${arr[@]}"}` is the only safe idiom.
+
+F. **chmod Before mv**: If a function does `touch file; chmod 600 file; awk > tmp; mv tmp file`, the mv replaces the inode with the tmp file's permissions (umask-default, e.g., 664). chmod must come AFTER the final write.
+
+G. **Subshell Variable Loss**: If a function stores its result in a global variable (e.g., `$REPLY`) and is called via `var=$(func ...)`, the global is set inside the subshell and immediately discarded. The caller gets stdout (which may be empty). Grep for ALL `$()` calls to functions that use `$REPLY`.
 
 ═══════════════════════════════════════════════════════════════════
 KNOWN BUG PATTERNS FROM PAST AUDITS (look for recurrence):
@@ -154,9 +174,14 @@ KNOWN BUG PATTERNS FROM PAST AUDITS (look for recurrence):
 8. **Ghost subcommands in completion** — Tab-completion offering commands that don't exist. PROVEN BUG.
 9. **README section number duplication** — Two §07 and two §08 sections. PROVEN BUG.
 10. **Manifesto contradicts shipped code** — Non-Goals claimed "no credential management" but keychain.sh ships a full PAT broker. PROVEN BUG.
+11. **chmod before mv** — `keychain_store()` ran `chmod 600` before `awk > tmp; mv tmp file`, so `mv` replaced the inode with umask-default permissions (664). PAT tokens were world-readable. PROVEN BUG.
+12. **Subshell capture of $REPLY functions** — `password=$(ask_password "...")` runs ask_password in a subshell. ask_password stores its result in `$REPLY` and prints nothing to stdout. The subshell discards `$REPLY`, so `$password` is always empty. Interactive vault encryption used an empty key. PROVEN BUG.
+13. **stty -echo not restored on SIGINT** — If Ctrl+C fires between `stty -echo` and `stty echo` in ask_password(), the terminal is stuck in no-echo mode. The global cleanup trap must include `stty echo 2>/dev/null || true`. PROVEN BUG.
+14. **README paths don't match install.sh** — README instructed `source ~/.local/bin/completion.sh` but install.sh never copies completion.sh there. PROVEN BUG.
+15. **ShellCheck directives inside case branches** — `# shellcheck disable=SCXXXX` placed between case items causes SC1124 parse errors. Directives must go before the `case` statement. PROVEN BUG.
 
 ═══════════════════════════════════════════════════════════════════
-STEP 4 — SELF-VERIFY (before reporting):
+STEP 5 — SELF-VERIFY (before reporting):
 ═══════════════════════════════════════════════════════════════════
 
 For EACH finding:
