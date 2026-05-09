@@ -25,7 +25,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Prompt Library:** Overhauled all 18 prompts in `docs/PROMPTS.md` using context engineering best practices (PCRF pattern, role personas, anti-pattern sections).
 - Added 2 new prompts: Performance Profiling (#17) and UX/DX Audit (#18).
+- **Completion:** Removed ghost `init` subcommand, added missing `backup`, `restore`, `credential` subcommand completions.
+- **Manifesto Non-Goals:** Updated to accurately reflect the PAT credential broker shipped in v1.1.0, removing the false "no credential management" claim.
+- **README:** Fixed duplicate section numbering (two §07 and §08 sections).
+- **Test Helpers:** `source_gitsetu_libs()` now sources all 14 lib modules (was missing `teardown.sh`, `setup.sh`, `keychain.sh`).
+- **Export Hygiene:** Changed `GITSETU_DEFAULT_SIGN` and `GITSETU_USE_PASSPHRASE` from `export` to plain shell variables to prevent unnecessary env leakage.
+- **Test Count:** Expanded from 124 to 130 tests with 6 new audit regression tests.
 
+### Fixed (Zero-Defect Audit)
+- **Status Indicator (Critical):** `gitsetu status` active identity checkmark (✓) was permanently broken. The profiles.conf registry intentionally writes an empty email column, but `cmd_status` compared that empty string to the current git email — guaranteed mismatch. Now loads email from the profile `.gitconfig` file.
+- **Doctor Stdout Leak (Critical):** All 30+ `printf` calls in `run_doctor()` wrote to stdout instead of stderr, violating the project convention that stdout is reserved for machine-readable output. Fixed all to `>&2`.
+- **Blueprint Array Init (Critical):** `generate_initial_blueprint()` did not initialize `PROFILE_USERS[]` or `PROFILE_PATS[]`, causing potential unbound variable crash under `set -u` when the interactive wizard accessed these arrays.
+- **Env Var Leak (High):** `MANAGED_BLOCK` was `export`ed in `write_global_gitconfig()` to pass to `awk` via `ENVIRON` but never `unset` afterward, leaking all profile path data to child processes.
+- **Empty Array Cleanup (Medium):** `gitsetu_global_cleanup()` iterated `${GITSETU_CLEANUP_FILES[@]}` without the `+` guard, which crashes Bash 3.2 under `set -u` when no temp files were created.
 ## [1.1.1] - 2026-05-07
 
 ### Fixed

@@ -134,10 +134,10 @@ GITSETU_CLEANUP_DIRS=()
 
 gitsetu_global_cleanup() {
     local f d
-    for f in "${GITSETU_CLEANUP_FILES[@]}"; do
+    for f in ${GITSETU_CLEANUP_FILES[@]+"${GITSETU_CLEANUP_FILES[@]}"}; do
         rm -f "$f" 2>/dev/null || true
     done
-    for d in "${GITSETU_CLEANUP_DIRS[@]}"; do
+    for d in ${GITSETU_CLEANUP_DIRS[@]+"${GITSETU_CLEANUP_DIRS[@]}"}; do
         if [[ "$d" == *.lock ]]; then
             if [[ -f "$d/pid" ]]; then
                 local lock_owner
@@ -267,14 +267,21 @@ cmd_status() {
             local dir_disp="${dir:-[Manual Mode]}"
             local prov_disp="${provider:-github.com}"
             
+            # Load email from profile gitconfig (registry leaves email column empty)
+            local profile_email
+            profile_email=$(git config -f "$GITSETU_PROFILES_DIR/${label}.gitconfig" user.email 2>/dev/null || true)
+            if [[ -z "$profile_email" ]] && [[ -n "$email" ]]; then
+                profile_email="$email"  # Legacy fallback
+            fi
+            
             # Check if this profile matches current identity
             local is_active="  "
-            if [[ "$email" == "$current_email" ]]; then
+            if [[ -n "$profile_email" ]] && [[ "$profile_email" == "$current_email" ]]; then
                 is_active="${GREEN}${SYM_CHECK} ${RESET}"
             fi
             
             printf >&2 '  %s%b%s%b\n' "$is_active" "$BOLD" "$label" "$RESET"
-            printf >&2 '    %b├─%b %-9s %s\n' "$DIM" "$RESET" "Email:" "$email"
+            printf >&2 '    %b├─%b %-9s %s\n' "$DIM" "$RESET" "Email:" "$profile_email"
             printf >&2 '    %b├─%b %-9s %s\n' "$DIM" "$RESET" "Provider:" "$prov_disp"
             printf >&2 '    %b└─%b %-9s %s\n\n' "$DIM" "$RESET" "Path:" "$dir_disp"
         done < "$GITSETU_PROFILES_CONF"

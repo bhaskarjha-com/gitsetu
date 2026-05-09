@@ -96,7 +96,7 @@ Because `includeIf` triggers as soon as the local `.git` folder is created, the 
 ## 4. Non-Goals
 
 To maintain its extreme focus and reliability, GitSetu explicitly rejects the following features:
-- **Credential Management:** It does not handle passwords, personal access tokens (PATs), or OAuth flows.
+- **OAuth / SSO Flows:** GitSetu brokers Personal Access Tokens (PATs) via the native OS keychain, but does not implement OAuth, SSO, or browser-based authentication flows.
 - **Git Wrapping:** It does not alias or intercept standard Git commands (beyond the native hooks).
 - **Dotfiles Management:** It strictly isolates its scope to Git and SSH identity configuration.
 - **Daemonization:** It is an execution script, not a background process.

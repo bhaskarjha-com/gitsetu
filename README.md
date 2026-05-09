@@ -197,7 +197,7 @@ GitSetu is designed from the ground up for highly parallel CI/CD environments an
 
 ---
 
-## 07. Ecosystem Comparison
+## 09. Ecosystem Comparison
 
 | Feature | `gitego` (Go) | `gguser` (Node) | `git-profile` (Rust/JS) | `karn` (Go) | **GitSetu (Bash)** |
 |---------|:---:|:---:|:---:|:---:|:---:|
@@ -211,7 +211,7 @@ GitSetu is designed from the ground up for highly parallel CI/CD environments an
 
 ---
 
-## 08. Philosophy
+## 10. Philosophy
 
 In Sanskrit, *Setu (सेतु)* is the bridge that connects two shores without disturbing either. It doesn't change the shore. It doesn't own the water. It simply makes crossing effortless and reliable.
 

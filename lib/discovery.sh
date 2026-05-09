@@ -173,6 +173,10 @@ generate_initial_blueprint() {
     global_key=$(discover_ssh_key_for_label "global")
     # shellcheck disable=SC2034
     PROFILE_KEYS[0]="${global_key:-$HOME/.ssh/id_ed25519_global}"
+    # shellcheck disable=SC2034
+    PROFILE_USERS[0]=""
+    # shellcheck disable=SC2034
+    PROFILE_PATS[0]=""
     
     PROFILE_COUNT=1
 
@@ -197,6 +201,10 @@ generate_initial_blueprint() {
         work_key=$(discover_ssh_key_for_label "work")
         # shellcheck disable=SC2034
         PROFILE_KEYS[1]="${work_key:-$HOME/.ssh/id_ed25519_work}"
+        # shellcheck disable=SC2034
+        PROFILE_USERS[1]=""
+        # shellcheck disable=SC2034
+        PROFILE_PATS[1]=""
         
         PROFILE_COUNT=2
     fi

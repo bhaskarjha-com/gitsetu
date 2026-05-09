@@ -253,8 +253,11 @@ source_gitsetu_libs() {
     source "$script_dir/lib/gitconfig.sh"
     source "$script_dir/lib/guard.sh"
     source "$script_dir/lib/verify.sh"
+    source "$script_dir/lib/teardown.sh"
     source "$script_dir/lib/discovery.sh"
+    source "$script_dir/lib/setup.sh"
     source "$script_dir/lib/doctor.sh"
+    source "$script_dir/lib/keychain.sh"
     
     detect_os
 }

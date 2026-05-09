@@ -166,6 +166,7 @@ write_global_gitconfig() {
         ' "$gitconfig" > "$tmp_file"
 
         mv "$tmp_file" "$gitconfig"
+        unset MANAGED_BLOCK
         print_success "Updated managed block in: $gitconfig"
 
     elif [[ -f "$gitconfig" ]]; then

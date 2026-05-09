@@ -16,7 +16,7 @@ _gitsetu() {
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
-    opts="setup status verify run teardown guard add remove profile init prompt doctor --help --version"
+    opts="setup status verify run teardown guard add remove profile backup restore credential prompt doctor --help --version"
 
     # Suggest subcommands if we are at the first argument
     if [[ ${COMP_CWORD} -eq 1 ]]; then
@@ -49,16 +49,9 @@ _gitsetu() {
             # shellcheck disable=SC2207
             COMPREPLY=( $(compgen -W "--force --dry-run --deep" -- "${cur}") )
             ;;
-        init)
+        setup)
             # shellcheck disable=SC2207
-            COMPREPLY=( $(compgen -W "--profile" -- "${cur}") )
-            ;;
-        --profile)
-            # After init --profile
-            if [[ "${COMP_WORDS[COMP_CWORD-2]}" == "init" ]] && [[ -n "$profiles" ]]; then
-                # shellcheck disable=SC2207
-                COMPREPLY=( $(compgen -W "${profiles}" -- "${cur}") )
-            fi
+            COMPREPLY=( $(compgen -W "--dry-run" -- "${cur}") )
             ;;
     esac
 }

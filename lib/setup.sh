@@ -156,13 +156,13 @@ prompt_security() {
     printf >&2 '\n  ─── Global Security Settings ───\n'
     
     if confirm "Enable Native SSH Commit Signing for all generated profiles?" "n"; then
-        export GITSETU_DEFAULT_SIGN=1
+        GITSETU_DEFAULT_SIGN=1
         local i
         for (( i=0; i<PROFILE_COUNT; i++ )); do
             PROFILE_SIGNS[i]=1
         done
     else
-        export GITSETU_DEFAULT_SIGN=0
+        GITSETU_DEFAULT_SIGN=0
         local i
         for (( i=0; i<PROFILE_COUNT; i++ )); do
             PROFILE_SIGNS[i]=0
@@ -170,9 +170,9 @@ prompt_security() {
     fi
     
     if confirm "Protect newly generated keys with a Passphrase?" "n"; then
-        export GITSETU_USE_PASSPHRASE=1
+        GITSETU_USE_PASSPHRASE=1
     else
-        export GITSETU_USE_PASSPHRASE=0
+        GITSETU_USE_PASSPHRASE=0
     fi
 }
 
