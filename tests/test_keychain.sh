@@ -135,6 +135,9 @@ test_keychain_file_permissions() {
     local tokens_file="$HOME/.config/gitsetu/.tokens"
     assert_file_exists "$tokens_file" "tokens file created" || return 1
 
+    # Skip numeric assertion on filesystems that ignore chmod (CI containers, VM mounts)
+    can_chmod_600 || return 0
+
     local perms
     perms=$(stat -c '%a' "$tokens_file" 2>/dev/null || stat -f '%Lp' "$tokens_file" 2>/dev/null || echo "???")
     assert_equals "600" "$perms" "tokens file has 600 permissions"

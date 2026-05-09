@@ -205,6 +205,19 @@ assert_exit_code() {
     return 1
 }
 
+# Check if chmod 600 is honored on the current $HOME filesystem.
+# Some CI runners, container mounts, and VM shared folders ignore chmod.
+# Usage: if can_chmod_600; then ... fi
+can_chmod_600() {
+    local test_file
+    test_file=$(mktemp "$HOME/.chmod_test.XXXXXX")
+    chmod 600 "$test_file"
+    local perms
+    perms=$(stat -c '%a' "$test_file" 2>/dev/null || stat -f '%Lp' "$test_file" 2>/dev/null || echo "???")
+    rm -f "$test_file"
+    [[ "$perms" == "600" ]]
+}
+
 # ------------------------------------------------------------------------------
 # Test HOME isolation
 # Creates a temporary directory to use as $HOME so tests don't touch real config.

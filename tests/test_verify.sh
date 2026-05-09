@@ -17,6 +17,9 @@ test_verify_ssh_keys_all_ok() {
     source_gitsetu_libs
     GITSETU_DRY_RUN=0
 
+    # Skip on filesystems that ignore chmod (CI containers, VM mounts)
+    can_chmod_600 || return 0
+
     mkdir -p "$HOME/.ssh"
     touch "$HOME/.ssh/id_ed25519_work"
     chmod 600 "$HOME/.ssh/id_ed25519_work"
@@ -182,6 +185,9 @@ EOF
 test_verify_all_stderr_only() {
     setup_test_home
     source_gitsetu_libs
+
+    # Skip on filesystems that ignore chmod (verify_ssh_keys checks perms)
+    can_chmod_600 || return 0
 
     mkdir -p "$HOME/.ssh" "$GITSETU_PROFILES_DIR"
     touch "$HOME/.gitconfig"
