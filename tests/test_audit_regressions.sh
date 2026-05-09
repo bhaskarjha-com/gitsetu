@@ -167,6 +167,7 @@ test_f09_empty_cleanup_arrays_safe() {
 
     # Ensure cleanup arrays are empty
     GITSETU_CLEANUP_FILES=()
+    # shellcheck disable=SC2034  # consumed by gitsetu_global_cleanup() below
     GITSETU_CLEANUP_DIRS=()
 
     # This should NOT crash under set -u

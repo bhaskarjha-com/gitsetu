@@ -465,6 +465,7 @@ cmd_profile() {
 
             # Parse flags
             while [[ $# -gt 0 ]]; do
+                # shellcheck disable=SC2034  # PROFILE_* arrays consumed by write_profiles_conf()
                 case "$1" in
                     --name=*) PROFILE_NAMES[idx]="${1#*=}" ;;
                     --email=*) PROFILE_EMAILS[idx]="${1#*=}" ;;
@@ -472,7 +473,6 @@ cmd_profile() {
                     --provider=*) PROFILE_PROVIDERS[idx]="${1#*=}" ;;
                     --key=*) PROFILE_KEYS[idx]=$(normalize_path "${1#*=}") ;;
                     --fido2) PROFILE_KEYS[idx]="$HOME/.ssh/id_ed25519_sk_${label}" ;;
-                    # shellcheck disable=SC2034  # PROFILE_SIGNS consumed by write_profiles_conf()
                     --sign) PROFILE_SIGNS[idx]="1" ;;
                     --no-sign) PROFILE_SIGNS[idx]="0" ;;
                     *)
