@@ -295,6 +295,10 @@ test_top_level_array_init() {
         printf '    FAIL: PROFILE_PATS not initialized at module scope\n'
         return 1
     fi
+    if [[ "$labels_val" == "UNSET" ]]; then
+        printf '    FAIL: PROFILE_LABELS not initialized at module scope\n'
+        return 1
+    fi
     return 0
 }
 

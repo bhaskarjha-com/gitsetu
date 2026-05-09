@@ -185,10 +185,12 @@ test_c01_ask_password_not_in_subshell() {
 
     # Grep for the broken pattern: $(ask_password ...)
     local violations
+    # shellcheck disable=SC2016  # Intentional: grepping for the literal pattern $(ask_password
     violations=$(grep -c '$(ask_password' "$backup_file" 2>/dev/null | tr -d '\r') || true
 
     if [[ "$violations" -gt 0 ]]; then
         printf '    FAIL: ask_password called via command substitution (%s times)\n' "$violations"
+        # shellcheck disable=SC2016  # Intentional: human-readable message referencing $REPLY
         printf '    This silently discards $REPLY. Use: ask_password "..."; var="$REPLY"\n'
         return 1
     fi

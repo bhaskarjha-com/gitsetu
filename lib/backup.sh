@@ -114,7 +114,7 @@ _collect_ssh_key_paths() {
             _kpath="${_kpath:-$HOME/.ssh/id_ed25519_${_label}}"
             if [[ -f "$_kpath" ]]; then
                 # Convert absolute path to path relative to $HOME for tar
-                local rel="${_kpath#$HOME/}"
+                local rel="${_kpath#"$HOME"/}"
                 key_files+=("$rel")
                 [[ -f "${_kpath}.pub" ]] && key_files+=("${rel}.pub")
             fi
@@ -254,7 +254,8 @@ cmd_restore() {
         print_warning "Active state detected. Creating pre-restore safety backup..."
         local safety_pass
         safety_pass=$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n' | head -c 32)
-        local safety_file="gitsetu_vault_pre_restore_$(date +%Y%m%d_%H%M%S).tar.gz.enc"
+        local safety_file
+        safety_file="gitsetu_vault_pre_restore_$(date +%Y%m%d_%H%M%S).tar.gz.enc"
         export GITSETU_TEST_VAULT_PASS="$safety_pass"
         cmd_backup "$safety_file" >/dev/null 2>&1 || return 1
         unset GITSETU_TEST_VAULT_PASS

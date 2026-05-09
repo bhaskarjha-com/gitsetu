@@ -74,6 +74,7 @@ cmd_prompt() {
     local max_len=0
 
     # Prefix match without subshells
+    # shellcheck disable=SC2034  # sign_commits parsed for field alignment
     while IFS=: read -r label email dir provider sign_commits key_path _unused || [[ -n "$label" ]]; do
         [[ -z "$dir" ]] && continue
         
@@ -261,6 +262,7 @@ cmd_status() {
     if [[ -f "$GITSETU_PROFILES_CONF" ]]; then
         print_section "Configured Profiles"
 
+        # shellcheck disable=SC2034  # sign_commits parsed for field alignment
         while IFS=: read -r label email dir provider sign_commits key_path _unused || [[ -n "$label" ]]; do
             [[ "$label" == "#"* ]] && continue
             [[ -z "$label" ]] && continue
@@ -423,6 +425,7 @@ cmd_run() {
 
     local found=0
     local found_key_path=""
+    # shellcheck disable=SC2034  # sign_commits parsed for field alignment
     while IFS=: read -r label email dir provider sign_commits key_path _unused || [[ -n "$label" ]]; do
         if [[ "$label" == "$profile" ]]; then
             found=1
@@ -480,6 +483,7 @@ cmd_remove() {
     # Check if profile exists
     local found=0
     local found_key_path=""
+    # shellcheck disable=SC2034  # sign_commits parsed for field alignment; key_path is the target
     while IFS=: read -r label email dir provider sign_commits key_path _unused || [[ -n "$label" ]]; do
         if [[ "$label" == "$profile" ]]; then
             found=1

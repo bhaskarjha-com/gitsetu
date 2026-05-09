@@ -172,6 +172,7 @@ prompt_security() {
     if confirm "Protect newly generated keys with a Passphrase?" "n"; then
         GITSETU_USE_PASSPHRASE=1
     else
+        # shellcheck disable=SC2034  # consumed by generate_ssh_key() via dynamic scoping
         GITSETU_USE_PASSPHRASE=0
     fi
 }
@@ -471,6 +472,7 @@ cmd_profile() {
                     --provider=*) PROFILE_PROVIDERS[idx]="${1#*=}" ;;
                     --key=*) PROFILE_KEYS[idx]=$(normalize_path "${1#*=}") ;;
                     --fido2) PROFILE_KEYS[idx]="$HOME/.ssh/id_ed25519_sk_${label}" ;;
+                    # shellcheck disable=SC2034  # PROFILE_SIGNS consumed by write_profiles_conf()
                     --sign) PROFILE_SIGNS[idx]="1" ;;
                     --no-sign) PROFILE_SIGNS[idx]="0" ;;
                     *)
