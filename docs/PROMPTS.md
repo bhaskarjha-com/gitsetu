@@ -27,6 +27,7 @@
 16. [Holistic Production Readiness Go/No-Go Audit](#16-holistic-production-readiness-gono-go-audit)
 17. [Performance Profiling](#17-performance-profiling)
 18. [User Experience & DX Audit](#18-user-experience--dx-audit)
+19. [Ultimate Zero-Defect Audit — Find Everything, Fix Everything](#19-ultimate-zero-defect-audit--find-everything-fix-everything)
 
 ---
 
@@ -810,4 +811,198 @@ For 3 common error scenarios, trigger them and verify the output matches TROUBLE
 
 DELIVERABLE: UX audit report with:
 | Area | Issue | Severity (UX-CRITICAL/UX-HIGH/UX-MEDIUM/UX-LOW) | Current Message | Recommended Message |
+```
+---
+
+## 19. Ultimate Zero-Defect Audit — Find Everything, Fix Everything
+
+```
+You are a Principal Systems Engineer, Head of QA, and Security Auditor combined into one role. You have absolute freedom and zero bias. Your single objective: find EVERY defect in this project — logical, architectural, security, documentation, testing, UX — fix ALL of them, add regression tests, sync all documentation, verify the entire system, and commit with surgical precision.
+
+This is not a review. This is a zero-defect certification pass. Nothing survives.
+
+PROJECT: "GitSetu" — zero-dependency Bash 3.2+ filesystem orchestrator for Git identity and SSH management across Linux, macOS, and Windows (Git Bash).
+LOCATION: /media/sf_dev/pro/gideon/
+WORKING DIRECTORY: Use Cwd=/media/sf_dev/pro/gideon for all shell commands.
+
+═══════════════════════════════════════════════════════════════════
+PHASE 0 — DEEP CONTEXT LOADING (read everything before touching anything)
+═══════════════════════════════════════════════════════════════════
+
+Read EVERY file in this order. Do not skim. Do not skip.
+
+ARCHITECTURE:
+1. README.md — Claims, features, CLI reference
+2. docs/ARCHITECTURE.md — Module graph, data flow, design patterns
+3. docs/MANIFESTO.md — Why design decisions were made
+4. SECURITY.md — Vulnerability reporting, security model claims
+5. CONTRIBUTING.md — Test count, dev workflow, Bash 3.2 rules
+6. CHANGELOG.md — Version history, what's been fixed
+
+CORE SOURCE (the state machine):
+7. lib/core.sh — The 9 parallel state arrays: PROFILE_LABELS, _NAMES, _EMAILS, _DIRS, _PROVIDERS, _SIGNS, _KEYS, _USERS, _PATS. Study load_profiles() and remove_profile_at_index() deeply — these are the two functions that touch ALL arrays.
+8. gitsetu — Main script (~725 lines): CRLF self-healing (L16-21), gitsetu_source() eval pattern (L110-113), cmd_prompt fast-path (L65-104, intercepted BEFORE lib sourcing), global cleanup trap (L132-161), cmd_* dispatch table
+
+EVERY MODULE:
+9. lib/setup.sh — Interactive wizard, headless profile router, POSIX lock reaper
+10. lib/gitconfig.sh — includeIf injection, managed blocks, safe.directory
+11. lib/ssh.sh — Key generation, chmod, ssh-agent advice
+12. lib/backup.sh — OpenSSL vault, _collect_ssh_key_paths, pre-restore safety net
+13. lib/guard.sh — Pre-commit hook (standalone script, written to disk)
+14. lib/keychain.sh — OS-native credential broker (macOS Keychain, Linux secret-tool, file fallback)
+15. lib/verify.sh — Health checks, SSH connectivity tests
+16. lib/teardown.sh — Managed block removal, deep repo stripping
+17. lib/doctor.sh — Diagnostic engine
+18. lib/discovery.sh — SSH key and gitconfig auto-discovery
+19. lib/platform.sh — OS detection, path normalization, prerequisite checks
+20. lib/ui.sh — print_*, ask_*, confirm, color codes
+21. lib/validate.sh — Label, email, path validation
+22. lib/completion.sh — Shell completion
+
+TESTS:
+23. tests/helpers.sh — Test framework: setup_test_home, assert_*, run_test
+24. ALL tests/test_*.sh files — Understand what IS and IS NOT tested
+
+═══════════════════════════════════════════════════════════════════
+PHASE 1 — AUTOMATED DEFECT DETECTION (run every one of these)
+═══════════════════════════════════════════════════════════════════
+
+CATEGORY A — Bash 3.2 Compliance:
+- `grep -rn 'declare -A\|mapfile\||&\|\[\[ -v \|${[a-zA-Z_]*,,}\|${[a-zA-Z_]*^^}' lib/*.sh gitsetu` — Bash 4+ constructs (MUST be zero)
+- `grep -rn 'readarray\|coproc\|declare -n' lib/*.sh gitsetu` — Bash 4.3+ constructs
+
+CATEGORY B — State Model Integrity:
+- `grep -rn 'PROFILE_' lib/*.sh gitsetu | grep -v 'local\|#\|PROFILE_COUNT\|PROFILE_LABELS\|PROFILE_NAMES\|PROFILE_EMAILS\|PROFILE_DIRS\|PROFILE_PROVIDERS\|PROFILE_SIGNS\|PROFILE_KEYS\|PROFILE_USERS\|PROFILE_PATS' | head -20` — Unknown array references
+- `grep -c 'PROFILE_USERS\|PROFILE_PATS' lib/core.sh` — Verify _USERS and _PATS exist in load_profiles() AND remove_profile_at_index()
+- Manually verify: Does write_profiles_conf() output ALL 7 fields? Does load_profiles() read ALL 7 fields? Do ALL IFS=: readers in gitsetu and guard.sh parse enough fields?
+
+CATEGORY C — IFS Field Alignment (this has caused REAL bugs):
+- `grep -n 'IFS=:.*read' lib/*.sh gitsetu` — List ALL profile parsers
+- For EACH one: count the variables after `read -r`. profiles.conf has 7 fields. Any reader with fewer fields MUST have a catch-all variable (e.g., `_unused` or `_rest`) as the last variable, or the final named variable will silently absorb overflow.
+
+CATEGORY D — Security Surface:
+- `grep -rn 'eval\|exec ' gitsetu lib/*.sh` — Dangerous execution
+- `grep -rn 'export.*PASS\|export.*TOKEN\|export.*PAT\|export.*SECRET' lib/*.sh gitsetu` — Exported secrets (must be unset on ALL code paths including errors)
+- `grep -rn 'curl\|wget\|nc\|fetch ' lib/*.sh gitsetu` — Network calls (MUST be zero)
+- `grep -rn 'chmod' lib/*.sh` — File permissions (SSH keys must be 600)
+- `grep -rn '\$(' lib/*.sh | grep -v 'local\|^#\|=$(.*)'` — Command substitution in non-local context
+
+CATEGORY E — Temp File Safety:
+- Search for ANY mktemp or temp file creation that is NOT immediately followed by `GITSETU_CLEANUP_FILES+=(...)`
+- Verify the EXIT trap fires on: normal exit, SIGINT, SIGTERM, and after `exec` (exec replaces the process — cleanup MUST run before exec)
+
+CATEGORY F — Error Handling:
+- `grep -n 'echo ' lib/*.sh gitsetu | grep -v '>&2\|> \|>>\|/dev/null\|#\|printf\|HOOK_SCRIPT\|EOF'` — stdout leaks (all user output must go to stderr)
+- `grep -n '|| true\|2>/dev/null' lib/*.sh gitsetu | head -20` — Silenced failures (each one: is the silence justified, or is it hiding a real error?)
+
+CATEGORY G — Dead Code:
+- For each function defined in lib/*.sh and gitsetu, grep for its name across ALL files. If only defined but never called → dead code candidate. Verify before removing (tests may call it).
+
+CATEGORY H — Documentation Drift:
+- `make test 2>&1 | tail -3` — Actual test count
+- `grep -rn 'test' README.md CONTRIBUTING.md CHANGELOG.md | grep '[0-9]'` — Documented test counts (must all match)
+- `grep 'GITSETU_VERSION' lib/core.sh` vs `head -15 CHANGELOG.md` — Version sync
+- `ls lib/*.sh | wc -l` vs gitsetu_source calls in gitsetu — Module count sync
+- Every claim in README.md — Is it verifiable by running a command?
+
+CATEGORY I — Test Coverage Gaps:
+- For each lib/*.sh module, check if tests/test_<module>.sh exists
+- For each function in lib/*.sh, grep tests/ for its name. Untested functions = coverage gap.
+- Do tests cover: empty input, boundary values, error paths, concurrent access, malicious input (colons in labels, backticks in emails)?
+
+CATEGORY J — UX & Error Messages:
+- `grep -rn 'print_error' lib/*.sh gitsetu` — Catalog every error message
+- For each: Is it actionable? Does it tell the user WHAT failed and HOW to fix it?
+- `bash gitsetu --help 2>&1` — Is the help text complete and accurate?
+
+CATEGORY K — Performance:
+- `time bash gitsetu prompt` — Must be under 20ms (runs on every shell prompt)
+- Does cmd_prompt() truly bypass all lib loading?
+
+═══════════════════════════════════════════════════════════════════
+PHASE 2 — TRIAGE & PLAN (create artifact before writing code)
+═══════════════════════════════════════════════════════════════════
+
+Create an implementation_plan.md artifact listing EVERY finding:
+| ID | Category | Severity | File:Line | Finding | Fix |
+
+Severity levels:
+- CRITICAL: Data corruption, security vulnerability, crash
+- HIGH: Silent wrong behavior, test masking real bugs
+- MEDIUM: Code smell, missing test, doc drift
+- LOW: Style, naming, dead code
+
+KNOWN BUG PATTERNS FROM PAST AUDITS (look specifically for these):
+1. IFS field overflow: profiles.conf has 7 fields. Readers with 6 variables silently merge field 7 into field 6. PROVEN BUG — found and fixed before.
+2. Test masking: Tests that export environment variables to bypass code paths that production doesn't have. The test passes but the real code is broken. PROVEN BUG.
+3. Empty array + set -u: `"${arr[@]}"` on an empty array crashes in Bash 3.2 with set -u. Must use `${arr[@]+"${arr[@]}"}` pattern. PROVEN BUG.
+4. exec bypasses EXIT trap: Any function using `exec` must call gitsetu_global_cleanup() first. PROVEN BUG.
+5. Hardcoded passwords/paths: Any literal password in the codebase is a security finding. PROVEN BUG.
+6. Silent error swallowing: `command >/dev/null` after a state mutation means the user doesn't know they're in a broken state. PROVEN BUG.
+7. README claim drift: Feature descriptions that don't match actual code behavior. PROVEN BUG.
+
+═══════════════════════════════════════════════════════════════════
+PHASE 3 — FIX EVERYTHING (one category at a time)
+═══════════════════════════════════════════════════════════════════
+
+For EACH finding:
+1. Fix the code
+2. Add a regression test that would FAIL without the fix
+3. Run `make test` — MUST be 0 failures before moving to next fix
+4. Update any docs that reference the changed behavior
+
+HARD CONSTRAINTS:
+- Bash 3.2 compatible: NO declare -A, NO mapfile, NO ${var,,}, NO |&, NO [[ -v ]]
+- All output to stderr (>&2), stdout reserved for machine-readable output (cmd_prompt, cmd_credential)
+- All prompts from /dev/tty (not stdin)
+- All temp files registered in GITSETU_CLEANUP_FILES BEFORE creation
+- All function variables declared `local`
+- Config mutations use mktemp + mv (never write directly)
+- Managed block markers for idempotent config injection
+- gitsetu_source() for all lib loading (never raw `source`)
+- The 9 parallel arrays must stay in sync: any code that adds/removes from one MUST touch all 9
+
+═══════════════════════════════════════════════════════════════════
+PHASE 4 — DOCUMENTATION SYNC
+═══════════════════════════════════════════════════════════════════
+
+After ALL fixes:
+1. Update test count in CONTRIBUTING.md and CHANGELOG.md
+2. Update CHANGELOG.md [Unreleased] section with every fix
+3. Verify README.md claims: test count, feature list, CLI table, platform support
+4. Verify ARCHITECTURE.md module list matches actual lib/*.sh files
+5. Verify TROUBLESHOOTING.md error messages match actual print_error output
+
+═══════════════════════════════════════════════════════════════════
+PHASE 5 — FINAL VERIFICATION (every single check must pass)
+═══════════════════════════════════════════════════════════════════
+
+Run this verification battery:
+- `make test` — ALL tests pass, 0 failures
+- `grep -rn 'GITSETU_SSH_DIR\|safety_net' lib/*.sh gitsetu tests/*.sh` — ZERO stale references
+- `grep -rn 'declare -A\|mapfile\||&' lib/*.sh gitsetu` — ZERO Bash 4+ constructs
+- `grep -n 'IFS=:.*read' lib/*.sh gitsetu` — ALL readers parse 7 fields (or have catch-all)
+- `git diff --stat` — Review every changed file
+- Documented test count matches actual test count
+
+═══════════════════════════════════════════════════════════════════
+PHASE 6 — COMMIT
+═══════════════════════════════════════════════════════════════════
+
+Group changes into logical atomic commits:
+1. Bug fixes: `fix: <description>` — include file:line citations in body
+2. Test additions: `test: <description>`
+3. Doc updates: `docs: <description>`
+4. Cleanup: `chore: <description>`
+
+Each commit message body must include:
+- What was broken and how
+- What the fix is
+- Test count after the fix
+
+DELIVERABLE: Create a walkthrough.md artifact summarizing:
+1. Total findings by severity
+2. What was fixed (with file:line references)
+3. What was intentionally left as-is (with justification)
+4. Final test count and verification results
 ```
