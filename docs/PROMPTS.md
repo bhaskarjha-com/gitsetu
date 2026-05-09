@@ -25,39 +25,55 @@
 14. [Onboard Yourself (General Context)](#14-onboard-yourself-general-context)
 15. [Brutal Security & Concurrency Audit](#15-brutal-security--concurrency-audit)
 16. [Holistic Production Readiness Go/No-Go Audit](#16-holistic-production-readiness-gono-go-audit)
+17. [Performance Profiling](#17-performance-profiling)
+18. [User Experience & DX Audit](#18-user-experience--dx-audit)
 
 ---
 
 ## 1. Full Codebase Audit
 
 ```
-I have a bash CLI project called "gitsetu" at /media/sf_dev/pro/gideon/
+You are a Principal Systems Engineer performing a production-readiness audit of a pure-Bash CLI tool. Your job is to find every bug, compliance violation, and architectural flaw — especially those that tests might be masking.
 
-Before doing anything, read these files to understand the project:
-- /media/sf_dev/pro/gideon/README.md
-- /media/sf_dev/pro/gideon/docs/ARCHITECTURE.md
-- /media/sf_dev/pro/gideon/lib/core.sh (for constants and state)
+PROJECT: "GitSetu" — a zero-dependency, Bash 3.2+ filesystem orchestrator for Git identity and SSH management.
+LOCATION: /media/sf_dev/pro/gideon/
+WORKING DIRECTORY: Use Cwd=/media/sf_dev/pro/gideon for all shell commands.
 
-Then perform a thorough technical audit:
+STEP 1 — BUILD CONTEXT (read in this order):
+1. README.md — Features, CLI reference, competitive claims
+2. docs/ARCHITECTURE.md — Module dependency graph, design patterns
+3. lib/core.sh — Constants, version, state arrays (PROFILE_*), load_profiles()
+4. gitsetu — Main orchestrator (note: CRLF self-healing at line ~21, gitsetu_source pattern, cmd_* dispatch)
+5. Skim every lib/*.sh file — understand each module's responsibility
 
-1. Run all tests: `make test`
-2. Run ShellCheck (if available): `shellcheck /media/sf_dev/pro/gideon/gitsetu /media/sf_dev/pro/gideon/lib/*.sh`
-3. Check for bash 4+ violations (this project MUST be bash 3.2 compatible):
-   `grep -rn 'declare -A\|mapfile\|readarray\|\${.*,,\}\|\${.*\^\^\}' /media/sf_dev/pro/gideon/lib/ /media/sf_dev/pro/gideon/gitsetu`
-4. Check for unquoted variables and security issues
-5. Verify all functions have documentation comments
-6. Cross-check README test count matches actual test count
-7. Verify CHANGELOG version matches GITSETU_VERSION in lib/core.sh
-8. Check the module dependency graph in ARCHITECTURE.md matches actual source imports
+STEP 2 — AUTOMATED CHECKS (run these commands):
+- `make test` — Capture pass/fail counts
+- `grep -rn 'declare -A\|mapfile\|readarray\||&\|\[\[ -v ' gitsetu lib/*.sh` — Bash 4+ violations
+- `grep -rn 'sed -i\|date -d\|echo -e' gitsetu lib/*.sh` — GNU-specific / non-POSIX tools
+- `grep -rn 'eval\|exec ' gitsetu lib/*.sh` — Dangerous execution patterns
+- `grep -c 'run_test' tests/test_*.sh | awk -F: '{sum+=$2} END {print sum}'` — Actual test count
 
-Standards:
-- Bash 3.2 compatible (no associative arrays, no mapfile, no ${var,,})
-- All variables must be quoted
-- All output to stderr (>&2), stdout kept clean
-- Managed block markers for idempotent config file updates
+STEP 3 — MANUAL AUDIT (prioritized dimensions):
+A. **Bash 3.2 Compliance**: No associative arrays, no mapfile, no ${var,,}, no |&, no [[ -v ]]
+B. **Variable Hygiene**: All variables quoted? All function-local variables declared `local`? Any undefined variables referenced?
+C. **Array Integrity**: Every parallel array (PROFILE_LABELS, _NAMES, _EMAILS, _DIRS, _PROVIDERS, _SIGNS, _KEYS, _USERS, _PATS) must be kept in sync across ALL functions that add, remove, or reload profiles
+D. **Security**: eval usage justified? Secrets ever leaked to stdout? File permissions correct (SSH keys 600)?
+E. **Idempotency**: Running `gitsetu setup` twice on an existing config must produce identical results
+F. **Cross-Platform**: stat, mktemp, awk, tr usage portable across macOS/Linux/MSYS2?
+G. **Documentation Drift**: Test count in README/CONTRIBUTING matches actual? CHANGELOG version matches core.sh?
 
-Create an audit report artifact with: findings, severity, and specific fix recommendations.
-Use the run_command tool with Cwd=/media/sf_dev/pro/gideon for shell commands.
+ANTI-PATTERNS TO WATCH FOR:
+- Tests that export variables to work around undefined production variables (masking real bugs)
+- Functions referenced in one module but defined nowhere (dead calls)
+- Array rebuild loops that handle some arrays but miss others added later
+- Manual array reload loops that duplicate load_profiles() logic
+
+STEP 4 — SELF-VERIFY: Review your findings for false positives. For each issue, confirm the bug exists by citing the exact file, line number, and the specific code that fails.
+
+DELIVERABLE: Create an audit report artifact with:
+1. Executive Summary (GO/NO-GO ruling)
+2. Findings table: | ID | Severity (BLOCKER/HIGH/MEDIUM/LOW) | File:Line | Description | Fix |
+3. Non-blocking polish items for post-release
 ```
 
 ---
@@ -65,32 +81,43 @@ Use the run_command tool with Cwd=/media/sf_dev/pro/gideon for shell commands.
 ## 2. Add a New Feature
 
 ```
-I have a bash CLI project called "gitsetu" at /media/sf_dev/pro/gideon/
+You are a Senior Bash Developer contributing to a zero-dependency CLI tool. You must deeply understand the existing architecture before writing any code, because this project enforces strict Bash 3.2 compatibility, a parallel-array state model, and a unified cleanup architecture.
 
-Before doing anything, read these files IN ORDER to understand the project:
-1. /media/sf_dev/pro/gideon/README.md (what the tool does)
-2. /media/sf_dev/pro/gideon/docs/ARCHITECTURE.md (how it's built)
-3. /media/sf_dev/pro/gideon/lib/core.sh (constants, state arrays)
-4. /media/sf_dev/pro/gideon/gitsetu (main script — note the CRLF self-healing block and gitsetu_source pattern)
+PROJECT: "GitSetu" — pure-Bash Git identity and SSH orchestrator.
+LOCATION: /media/sf_dev/pro/gideon/
+WORKING DIRECTORY: Use Cwd=/media/sf_dev/pro/gideon for all shell commands.
 
-I want to add this feature: [DESCRIBE YOUR FEATURE HERE]
+STEP 1 — UNDERSTAND THE ARCHITECTURE (read in this order):
+1. README.md — What the tool does, user-facing CLI
+2. docs/ARCHITECTURE.md — Module graph, managed block pattern, CRLF self-healing
+3. lib/core.sh — The 9 parallel state arrays (PROFILE_LABELS, _NAMES, _EMAILS, _DIRS, _PROVIDERS, _SIGNS, _KEYS, _USERS, _PATS), load_profiles(), remove_profile_at_index()
+4. lib/ui.sh — print_*, ask(), ask_password(), confirm() — ALL user-facing output
+5. gitsetu — Main script: CRLF self-healing (line ~21), gitsetu_source() for loading libs, cmd_* dispatch table, global cleanup trap (GITSETU_CLEANUP_FILES/DIRS)
+6. The lib/*.sh module most related to your feature
 
-Rules you MUST follow:
-- Bash 3.2 compatible: NO declare -A, NO mapfile, NO ${var,,}, NO |&
-- All variables must be quoted — no word splitting bugs
-- All user-facing output goes to stderr (>&2) using print_* functions from lib/ui.sh
-- New functions MUST have a doc comment (purpose, usage, return value)
-- If modifying user config files, use managed block markers (# [gitsetu:managed:start/end])
-- Source new lib files via gitsetu_source() in the main gitsetu script (NOT direct source)
+FEATURE TO ADD: [DESCRIBE YOUR FEATURE HERE]
 
-After implementing:
-1. Write tests in tests/test_<module>.sh following the existing pattern (see tests/helpers.sh)
-2. Run all tests: `make test`
-3. Update README.md (CLI reference table, project structure if new files)
-4. Update docs/ARCHITECTURE.md if adding new modules
-5. Update CHANGELOG.md
+HARD CONSTRAINTS (violating any of these is a rejection):
+- Bash 3.2: NO declare -A, NO mapfile/readarray, NO ${var,,}/${var^^}, NO |&, NO [[ -v ]]
+- ALL variables must be quoted — no exceptions
+- ALL user-facing output to stderr (>&2) via print_* functions — stdout stays clean
+- ALL temp files must be registered in GITSETU_CLEANUP_FILES+=() BEFORE creation
+- ALL function-local variables declared with `local`
+- New functions MUST have a doc comment block: purpose, usage, return value
+- Config file modifications MUST use managed block markers (GITSETU_MANAGED_START/END)
+- New lib files MUST be loaded via gitsetu_source() — never raw `source`
+- If adding to the PROFILE_* arrays, update ALL consumers: load_profiles(), remove_profile_at_index(), write_profiles_conf(), and any manual reload loops
 
-Use the run_command tool with Cwd=/media/sf_dev/pro/gideon for shell commands.
+IMPLEMENTATION WORKFLOW:
+1. Create an implementation plan artifact before writing code
+2. Implement the feature in the appropriate lib/*.sh file
+3. Wire it into the main `gitsetu` script (add cmd_* function, update dispatch case, update help text)
+4. Write tests in tests/test_<module>.sh:
+   - Use setup_test_home() — tests MUST NOT touch real ~/.ssh or ~/.gitconfig
+   - Use assert_* helpers from tests/helpers.sh
+   - Register with: run_test "description" function_name
+5. Run `make test` — all tests must pass with 0 failures
+6. Update: README.md, docs/ARCHITECTURE.md (if new module), CHANGELOG.md
 ```
 
 ---
@@ -98,28 +125,34 @@ Use the run_command tool with Cwd=/media/sf_dev/pro/gideon for shell commands.
 ## 3. Fix a Bug
 
 ```
-I have a bash CLI project called "gitsetu" at /media/sf_dev/pro/gideon/
+You are a Senior Debugger investigating a bug in a pure-Bash CLI tool. Your approach: trace the root cause through the full call chain, assess blast radius, fix surgically, and prove correctness with a regression test.
 
-Read these files to understand the project:
-- /media/sf_dev/pro/gideon/docs/ARCHITECTURE.md
-- /media/sf_dev/pro/gideon/lib/core.sh
+PROJECT: "GitSetu" — zero-dependency Bash 3.2+ Git identity orchestrator.
+LOCATION: /media/sf_dev/pro/gideon/
+WORKING DIRECTORY: Use Cwd=/media/sf_dev/pro/gideon for all shell commands.
 
-The bug is: [DESCRIBE THE BUG, HOW TO REPRODUCE, EXPECTED vs ACTUAL BEHAVIOR]
+THE BUG: [DESCRIBE THE BUG — symptoms, reproduction steps, expected vs actual behavior]
 
-Follow this process:
-1. First, understand the relevant module by reading the lib/*.sh file involved
-2. Write a FAILING test that reproduces the bug in tests/test_<module>.sh
-3. Fix the bug in the lib file
-4. Run the test to confirm it passes
-5. Run ALL tests to confirm no regressions: `make test`
-6. Update CHANGELOG.md with the fix
+CONTEXT TO READ FIRST:
+1. docs/ARCHITECTURE.md — Understand the module graph so you can trace cross-module dependencies
+2. lib/core.sh — State arrays and data flow
+3. The specific lib/*.sh file where the bug likely lives
+4. The corresponding tests/test_*.sh file — understand what IS tested vs what ISN'T
 
-Rules:
-- Bash 3.2 compatible (no declare -A, mapfile, ${var,,})
+DEBUGGING METHODOLOGY:
+1. REPRODUCE: If possible, write a minimal failing test first (test-driven fix)
+2. TRACE: Follow the data flow from user input → state arrays → file output. Identify the EXACT line where behavior diverges from expectation
+3. BLAST RADIUS: Check if sibling functions have the same class of bug. Example: if remove_profile_at_index() is missing an array, check if cmd_remove() and load_profiles() also handle that array. If a function is called by name, grep for ALL call sites.
+4. CHECK TEST MASKING: Do existing tests pass DESPITE the bug? If so, identify WHY (e.g., test exports a variable that production code doesn't define, test redirects stderr hiding a crash, test framework's `|| result=$?` suppresses set -e)
+5. FIX: Apply the minimal surgical change. Do not refactor unrelated code.
+6. VERIFY: Run `make test` — 0 failures, 0 regressions
+
+CONSTRAINTS:
+- Bash 3.2 compatible — NO declare -A, mapfile, ${var,,}, |&, [[ -v ]]
 - All variables quoted
-- Don't break existing tests
+- If the fix touches the PROFILE_* arrays, verify ALL 9 arrays stay in sync
 
-Use the run_command tool with Cwd=/media/sf_dev/pro/gideon for shell commands.
+DELIVERABLE: For each fix, document: root cause, why tests missed it, the fix, and blast-radius assessment.
 ```
 
 ---
@@ -127,31 +160,41 @@ Use the run_command tool with Cwd=/media/sf_dev/pro/gideon for shell commands.
 ## 4. Add Tests
 
 ```
-I have a bash CLI project called "gitsetu" at /media/sf_dev/pro/gideon/
+You are a QA Engineer hardening a pure-Bash CLI tool's test suite. Your goal is not just coverage but quality — tests that catch real bugs, not tests that pass by accident.
 
-Read these files to understand the testing approach:
-- /media/sf_dev/pro/gideon/tests/helpers.sh (test framework: assertions, isolated HOME)
-- /media/sf_dev/pro/gideon/tests/test_validate.sh (example of well-written tests)
-- /media/sf_dev/pro/gideon/tests/test_integration.sh (example of end-to-end tests)
+PROJECT: "GitSetu" — zero-dependency Bash 3.2+ Git identity orchestrator.
+LOCATION: /media/sf_dev/pro/gideon/
+WORKING DIRECTORY: Use Cwd=/media/sf_dev/pro/gideon for all shell commands.
 
-Current coverage: 123 tests across 18 test files. I want to improve coverage.
+STEP 1 — LEARN THE TEST FRAMEWORK:
+1. tests/helpers.sh — setup_test_home() (isolated $HOME in /tmp), source_gitsetu_libs(), all assert_* helpers
+2. tests/test_validate.sh — Example: pure unit tests with positive + negative cases
+3. tests/test_integration.sh — Example: end-to-end flows
+4. tests/test_concurrency.sh — Example: parallel execution + lock contention
+5. tests/test_resilience.sh — Example: malformed config recovery
 
-Identify gaps by:
-1. Reading each lib/*.sh file and listing functions without corresponding tests
-2. Checking edge cases not covered (empty input, special characters, permission errors)
-3. Looking for untested subcommands (status, verify, guard)
+STEP 2 — GAP ANALYSIS (run these first):
+- `make test` — Note current count and which modules have fewest tests
+- `grep -c 'run_test' tests/test_*.sh | sort -t: -k2 -n` — Tests per module
+- For each lib/*.sh, list public functions and check if they have corresponding test_* functions
 
-Then write new tests following these patterns:
-- Use setup_test_home() for any test that touches files
-- Test functions return 0 (pass) or 1 (fail)
+STEP 3 — WRITE TESTS targeting these categories:
+A. **Untested happy paths**: Functions that exist in lib/*.sh but have no corresponding test
+B. **Negative/edge cases**: Empty input, special characters (colons, quotes, spaces in paths), missing files, permission denied
+C. **State corruption**: What happens if profiles.conf is empty? Has only comments? Has trailing newlines? Has duplicate labels?
+D. **Boundary conditions**: PROFILE_COUNT=0, removing the last profile, adding when at max
+E. **Security boundaries**: Verify SSH keys get chmod 600, verify secrets never appear in stdout
+
+TEST QUALITY RULES:
+- setup_test_home() is MANDATORY — tests MUST NOT touch real ~/.ssh or ~/.gitconfig
+- Tests must validate behavior, not just "didn't crash" — always assert specific output/state
+- Do NOT export variables to make tests pass unless production code also exports them
 - Register with: run_test "description" function_name
-- Use assert_* helpers: assert_equals, assert_contains, assert_file_exists, assert_file_contains, assert_exit_code
-- Tests MUST NOT touch real ~/.ssh or ~/.gitconfig
+- Use: assert_equals, assert_contains, assert_file_exists, assert_file_contains, assert_exit_code
 
-Run all tests after adding: `make test`
-Update README.md test count.
-
-Use the run_command tool with Cwd=/media/sf_dev/pro/gideon for shell commands.
+STEP 4 — VERIFY:
+- Run `make test` — 0 failures
+- Update README.md and CONTRIBUTING.md with the new test count
 ```
 
 ---
@@ -159,38 +202,39 @@ Use the run_command tool with Cwd=/media/sf_dev/pro/gideon for shell commands.
 ## 5. Improve Documentation
 
 ```
-I have a bash CLI project called "gitsetu" at /media/sf_dev/pro/gideon/
+You are a Technical Writer and Documentation Auditor. Your job has two phases: (1) verify every claim in the docs against the actual code (accuracy), then (2) assess whether the docs are compelling, complete, and useful for their target audience (quality).
 
-Read ALL documentation files:
-- /media/sf_dev/pro/gideon/README.md
-- /media/sf_dev/pro/gideon/docs/ARCHITECTURE.md
-- /media/sf_dev/pro/gideon/docs/TROUBLESHOOTING.md
-- /media/sf_dev/pro/gideon/docs/VISION.md
-- /media/sf_dev/pro/gideon/CONTRIBUTING.md
-- /media/sf_dev/pro/gideon/CHANGELOG.md
+PROJECT: "GitSetu" — zero-dependency Bash 3.2+ Git identity orchestrator.
+LOCATION: /media/sf_dev/pro/gideon/
+WORKING DIRECTORY: Use Cwd=/media/sf_dev/pro/gideon for all shell commands.
 
-Also read the actual code to verify accuracy:
-- /media/sf_dev/pro/gideon/gitsetu (subcommands, help text)
-- /media/sf_dev/pro/gideon/lib/core.sh (version, constants)
+PHASE 1 — ACCURACY AUDIT (read docs, then verify against code):
+Read these docs: README.md, docs/ARCHITECTURE.md, docs/TROUBLESHOOTING.md, docs/MANIFESTO.md, CONTRIBUTING.md, CHANGELOG.md, SECURITY.md
+Read these source files: gitsetu (help text, subcommands), lib/core.sh (version, constants), lib/platform.sh (OS detection)
 
-Cross-check and fix:
-1. Test count in README matches actual (run tests to count)
-2. CLI reference table matches actual subcommands in main()
-3. Module diagram in ARCHITECTURE.md matches actual lib/*.sh files
-4. CHANGELOG version matches GITSETU_VERSION in core.sh
-5. Platform table matches detect_os() in platform.sh
-6. Bash 3.2 compat table in CONTRIBUTING.md is complete
-7. All file paths and cross-references between docs are valid
-8. FAQ answers are technically accurate
+Run these commands to detect drift:
+- `make test 2>&1 | tail -5` — Actual test count
+- `grep -c 'run_test' tests/test_*.sh | awk -F: '{sum+=$2} END {print sum}'` — Cross-check
+- `grep 'GITSETU_VERSION' lib/core.sh` — Actual version
+- `ls lib/*.sh | wc -l` — Actual module count
+- `grep -E '^\|' README.md | head -20` — CLI reference table
 
-Also assess quality:
-- Is README compelling for a portfolio project?
-- Are troubleshooting entries covering real user pain points?
-- Is the architecture doc useful for a new contributor?
+Cross-check for these specific types of drift:
+A. Test count in README and CONTRIBUTING.md vs actual
+B. CLI subcommands in README table vs case statement in gitsetu main()
+C. Module list in ARCHITECTURE.md vs actual lib/*.sh files
+D. CHANGELOG version vs GITSETU_VERSION in core.sh
+E. Platform support table vs detect_os() cases in platform.sh
+F. Bash 3.2 compatibility table in CONTRIBUTING.md vs .shellcheckrc
 
-Create an artifact with all findings and fix everything in-place.
+PHASE 2 — QUALITY ASSESSMENT:
+- **README.md**: Does it work as a portfolio piece? Are competitive claims defensible? Is the quick-start genuinely quick (< 3 commands)?
+- **TROUBLESHOOTING.md**: Do the error messages match actual print_error/print_warning output in the code? Are solutions actionable?
+- **ARCHITECTURE.md**: Could a new contributor understand the codebase in 15 minutes? Is the module graph accurate?
+- **CONTRIBUTING.md**: Are setup instructions reproducible? Is the test framework documented?
+- **SECURITY.md**: Is the vulnerability reporting process clear? Is the 48h SLA reasonable?
 
-Use the run_command tool with Cwd=/media/sf_dev/pro/gideon for shell commands.
+DELIVERABLE: Create an artifact listing all drift findings with fixes, then apply all fixes in-place.
 ```
 
 ---
@@ -198,24 +242,51 @@ Use the run_command tool with Cwd=/media/sf_dev/pro/gideon for shell commands.
 ## 6. Prepare a Release
 
 ```
-I have a bash CLI project called "gitsetu" at /media/sf_dev/pro/gideon/
+You are a Release Manager executing a pre-release checklist for a pure-Bash CLI tool. Every check must pass before tagging — if any fails, stop and report the blocker.
 
-Read these files first:
-- /media/sf_dev/pro/gideon/lib/core.sh (current GITSETU_VERSION)
-- /media/sf_dev/pro/gideon/CHANGELOG.md (current release notes)
+PROJECT: "GitSetu" — zero-dependency Bash 3.2+ Git identity orchestrator.
+LOCATION: /media/sf_dev/pro/gideon/
+WORKING DIRECTORY: Use Cwd=/media/sf_dev/pro/gideon for all shell commands.
+TARGET VERSION: v[VERSION]
 
-I want to prepare release v[VERSION]. Execute this checklist:
+PRE-FLIGHT CONTEXT:
+1. lib/core.sh — Current GITSETU_VERSION
+2. CHANGELOG.md — Current release notes
+3. README.md — Test count, version references, badge URLs
 
-1. Update GITSETU_VERSION in lib/core.sh to the new version
-2. Update CHANGELOG.md with all changes since last release
-3. Run full test suite: `make test`
-4. Run ShellCheck if available: `shellcheck /media/sf_dev/pro/gideon/gitsetu /media/sf_dev/pro/gideon/lib/*.sh`
-5. Verify `bash /media/sf_dev/pro/gideon/gitsetu --version` shows new version
-6. Update README.md test count if tests were added
-7. Verify all docs are current (cross-check version references)
-8. Show me the git commands to tag and push the release
+RELEASE CHECKLIST (execute in order, stop on first failure):
 
-Use the run_command tool with Cwd=/media/sf_dev/pro/gideon for shell commands.
+1. VERSION BUMP:
+   - Update GITSETU_VERSION="[VERSION]" in lib/core.sh
+   - Verify: `bash gitsetu --version` outputs new version
+
+2. CHANGELOG:
+   - Update CHANGELOG.md: add a new ## [VERSION] — YYYY-MM-DD section
+   - Include all changes since last release (check `git log --oneline $(git describe --tags --abbrev=0)..HEAD`)
+
+3. FULL TEST SUITE:
+   - Run `make test` — ALL tests must pass with 0 failures
+   - Run `make lint` (ShellCheck) — 0 errors
+
+4. VERSION CONSISTENCY SCAN:
+   - `grep -rn '[VERSION]' README.md CHANGELOG.md lib/core.sh docs/*.md` — All version references aligned
+   - Test count in README and CONTRIBUTING.md matches actual
+
+5. DOCUMENTATION FRESHNESS:
+   - CLI reference table in README matches actual subcommands
+   - Platform support table is current
+   - TROUBLESHOOTING.md errors match actual code output
+
+6. SUPPLY CHAIN:
+   - GitHub Actions SHAs in .github/workflows/*.yml are current (no known CVEs)
+   - Dependabot config present
+
+7. TAG & RELEASE (show commands, do not execute):
+   - `git add -A && git commit -m "chore: release v[VERSION]"`
+   - `git tag -a v[VERSION] -m "Release v[VERSION]"`
+   - `git push origin main --tags`
+
+NO-GO GATE: If any step fails, report the blocker and stop. Do not tag a broken release.
 ```
 
 ---
@@ -223,33 +294,39 @@ Use the run_command tool with Cwd=/media/sf_dev/pro/gideon for shell commands.
 ## 7. Security Audit
 
 ```
-I have a bash CLI project called "gitsetu" at /media/sf_dev/pro/gideon/
-It generates SSH keys and modifies ~/.gitconfig and ~/.ssh/config.
+You are an Adversarial Security Auditor. Think like an attacker: your goal is to find every way this CLI tool leaks credentials, corrupts state, or allows privilege escalation through its filesystem operations.
 
-Read the code:
-- /media/sf_dev/pro/gideon/lib/ssh.sh (SSH key generation)
-- /media/sf_dev/pro/gideon/lib/gitconfig.sh (config file writing)
-- /media/sf_dev/pro/gideon/lib/guard.sh (pre-commit hook — runs on every commit)
-- /media/sf_dev/pro/gideon/lib/backup.sh (backup management)
+PROJECT: "GitSetu" — zero-dependency Bash 3.2+ CLI that generates SSH keys, modifies ~/.gitconfig, ~/.ssh/config, and stores encrypted vault backups with OpenSSL.
+LOCATION: /media/sf_dev/pro/gideon/
+WORKING DIRECTORY: Use Cwd=/media/sf_dev/pro/gideon for all shell commands.
 
-Audit for:
-1. File permissions: Are SSH keys created with chmod 600? Is ~/.ssh/config 600?
-2. eval/exec usage: Any eval with user-supplied input? (should be zero)
-3. Input injection: Can profile labels/emails inject into config files?
-4. Temp file safety: Are temp files created securely (pre-registered `$TMPDIR/..._$$_${RANDOM}` paths to avoid TOCTOU)?
-5. Backup exposure: Could backups leak sensitive data?
-6. Guard hook: Does it make any network calls? (should not)
-7. Path traversal: Can user input escape intended directories?
-8. Race conditions: Any TOCTOU issues in file operations?
+CRITICAL FILES TO READ (all of them — no file is low-risk):
+- lib/ssh.sh — SSH key generation, chmod, passphrase handling
+- lib/gitconfig.sh — Config file injection surface (managed blocks, includeIf, safe.directory)
+- lib/guard.sh — Pre-commit hook that runs on EVERY commit in EVERY repo
+- lib/backup.sh — OpenSSL AES-256-CBC vault, tar bundling, password handling
+- lib/keychain.sh — OS-native credential broker (macOS Keychain, Linux secret-tool, file fallback)
+- lib/setup.sh — PAT collection via stty -echo, profile state mutations
+- gitsetu — eval usage in gitsetu_source(), global cleanup trap
 
-Also check:
-- `grep -rn 'eval\|exec ' /media/sf_dev/pro/gideon/lib/ /media/sf_dev/pro/gideon/gitsetu`
-- `grep -rn 'curl\|wget\|nc ' /media/sf_dev/pro/gideon/lib/`
-- `grep -rn 'chmod' /media/sf_dev/pro/gideon/lib/`
+AUTOMATED SURFACE SCAN (run these):
+- `grep -rn 'eval\|exec ' gitsetu lib/*.sh` — Dangerous execution
+- `grep -rn 'curl\|wget\|nc\|fetch ' lib/*.sh gitsetu` — Network calls (should be ZERO)
+- `grep -rn 'chmod' lib/*.sh` — Permission settings
+- `grep -rn '\$(' lib/*.sh | grep -v 'local\|^#'` — Command substitution in non-local context
+- `grep -rn 'export.*PASS\|export.*TOKEN\|export.*PAT\|export.*SECRET' lib/*.sh gitsetu` — Exported secrets
 
-Create a security audit report with severity ratings and remediation steps.
+THREAT MODEL — audit each attack vector:
+A. **Credential Leakage**: Are PATs ever written to stdout, logged to stderr with set -x, or left in environment variables after use? Is GITSETU_VAULT_PASS unset after every use path (including error paths)?
+B. **Config Injection**: Can a malicious profile label containing colons, quotes, backticks, or $() break out of the profiles.conf format or the generated .gitconfig? Test the escaping in gitconfig.sh.
+C. **File Permissions**: SSH private keys must be chmod 600. ~/.ssh/config must be 644 or 600. Token fallback files must be 600. Verify all paths.
+D. **eval Safety**: gitsetu_source() uses eval — is the input always a trusted local file, never user-controlled? Can CRLF injection alter eval behavior?
+E. **Temp File Safety**: Are temp files created with unpredictable names? Registered in GITSETU_CLEANUP_FILES BEFORE content is written? Cleaned up on SIGINT/SIGTERM/EXIT?
+F. **Guard Hook Bypass**: Can a malicious repo override core.hooksPath to suppress the identity guard? Does the hook detect this?
+G. **Vault Security**: OpenSSL PBKDF2 with 100K iterations — is fallback to plain -md sha256 acceptable? Can an attacker inject flags via the password prompt?
+H. **Race Conditions**: Lock acquisition uses atomic mkdir — but what about the microsecond gap before PID is written? Is the 50-cycle phantom deadlock prover sufficient?
 
-Use the run_command tool with Cwd=/media/sf_dev/pro/gideon for shell commands.
+DELIVERABLE: Security audit report with: | ID | Severity (CRITICAL/HIGH/MEDIUM/LOW) | Vector | File:Line | Finding | Remediation |
 ```
 
 ---
@@ -257,28 +334,44 @@ Use the run_command tool with Cwd=/media/sf_dev/pro/gideon for shell commands.
 ## 8. Add New Platform Support
 
 ```
-I have a bash CLI project called "gitsetu" at /media/sf_dev/pro/gideon/
+You are a Platform Engineer adding cross-platform support to a pure-Bash CLI tool. Before writing code, you must research the target platform's specific behaviors for: path formats, OSTYPE string, SSH agent, credential storage, and stat/mktemp portability.
 
-Read these files:
-- /media/sf_dev/pro/gideon/lib/platform.sh (current OS detection and path normalization)
-- /media/sf_dev/pro/gideon/docs/ARCHITECTURE.md (platform design)
+PROJECT: "GitSetu" — zero-dependency Bash 3.2+ Git identity orchestrator.
+LOCATION: /media/sf_dev/pro/gideon/
+WORKING DIRECTORY: Use Cwd=/media/sf_dev/pro/gideon for all shell commands.
 
-I want to add support for: [PLATFORM NAME — e.g., "FreeBSD", "Docker containers", "Codespaces"]
+TARGET PLATFORM: [PLATFORM NAME — e.g., "FreeBSD", "Docker/CI containers", "GitHub Codespaces", "ChromeOS Crostini"]
 
-Steps:
-1. Add detection logic to detect_os() in lib/platform.sh
-2. Add prerequisite install guidance to get_install_guidance()
-3. Update get_gitdir_keyword() if path matching differs on this platform
-4. Update get_ssh_agent_advice() for platform-specific SSH agent setup
-5. Test path normalization for this platform's path format
-6. Add tests to tests/test_platform.sh
-7. Update README.md platform support table
-8. Add platform section to docs/TROUBLESHOOTING.md
-9. Run all tests: `make test`
+STEP 1 — UNDERSTAND CURRENT PLATFORM LAYER:
+1. lib/platform.sh — detect_os(), normalize_path(), get_gitdir_keyword(), get_ssh_agent_advice(), get_install_guidance()
+2. gitsetu (lines ~20-30) — CRLF self-healing and ORIG_SCRIPT detection
+3. install.sh — Symlink vs wrapper script logic for MSYS2
+4. tests/test_platform.sh — Existing platform tests
 
-Rules: Bash 3.2 compatible, all variables quoted, test changes don't break other platforms.
+STEP 2 — RESEARCH (use web search for the target platform):
+- What does `$OSTYPE` or `uname -s` return on this platform?
+- Does it use GNU or BSD coreutils? (affects stat, mktemp, sed, date behavior)
+- Where is the default SSH agent socket? How is ssh-agent started?
+- Does it have a native credential store (keychain, secret-tool, etc.)?
+- Are there path format quirks (drive letters, case sensitivity, mount points)?
+- Does `/usr/bin/env bash` resolve correctly? What Bash version ships by default?
 
-Use the run_command tool with Cwd=/media/sf_dev/pro/gideon for shell commands.
+STEP 3 — IMPLEMENT (touch these files):
+A. lib/platform.sh — Add case to detect_os(), update get_install_guidance(), get_ssh_agent_advice()
+B. lib/platform.sh — Update get_gitdir_keyword() if path matching is case-insensitive on this platform
+C. lib/platform.sh — Verify normalize_path() handles this platform's path separators
+D. install.sh — Add platform-specific installation logic if needed
+E. tests/test_platform.sh — Add detection and normalization tests for the new platform
+
+STEP 4 — UPDATE DOCS:
+- README.md — Platform support table
+- docs/TROUBLESHOOTING.md — Platform-specific section with common issues
+- docs/ARCHITECTURE.md — Platform detection diagram if significantly changed
+
+CONSTRAINTS:
+- Bash 3.2 compatible — the new platform code must not break macOS/Linux/MSYS2
+- All variables quoted, all new variables declared `local`
+- Run `make test` — 0 failures across ALL platforms
 ```
 
 ---
@@ -286,29 +379,47 @@ Use the run_command tool with Cwd=/media/sf_dev/pro/gideon for shell commands.
 ## 9. Resume & Portfolio Update
 
 ```
-I have a bash CLI project called "gitsetu" at /media/sf_dev/pro/gideon/
+You are a Career Strategist helping a developer package a side project for maximum resume and interview impact. Every claim must be backed by verifiable code — no inflation, no rounding up, no aspirational language.
 
-Read these files to understand current state:
-- /media/sf_dev/pro/gideon/README.md (features, stats)
-- /media/sf_dev/pro/gideon/CHANGELOG.md (what's been done)
-- /media/sf_dev/pro/gideon/lib/core.sh (version)
+PROJECT: "GitSetu" — zero-dependency Bash 3.2+ Git identity orchestrator.
+LOCATION: /media/sf_dev/pro/gideon/
+WORKING DIRECTORY: Use Cwd=/media/sf_dev/pro/gideon for all shell commands.
 
-Also check the existing resume artifact if it exists:
-- /home/ag-deb/.gemini/antigravity/brain/16b65c7e-2531-45cf-8f76-4ec2b8f4e8f4/resume_brief.md
+STEP 1 — GATHER REAL METRICS (run these commands):
+- `make test 2>&1 | tail -3` — Exact test count
+- `find lib gitsetu -name "*.sh" -o -name "gitsetu" | xargs wc -l | tail -1` — Total LoC
+- `ls lib/*.sh | wc -l` — Module count
+- `grep 'GITSETU_VERSION' lib/core.sh` — Current version
+- `cat .github/workflows/ci.yml | grep 'os:' -A3` — CI platform matrix
+- `git log --oneline | wc -l` — Total commits (project maturity)
+- `git log --format='%aN' | sort -u` — Contributor count
 
-Run tests to get exact count: `make test`
-Count lines: `find /media/sf_dev/pro/gideon/lib /media/sf_dev/pro/gideon/gitsetu -name "*.sh" -o -name "gitsetu" | xargs wc -l`
+STEP 2 — READ CONTEXT:
+- README.md — Feature list, competitive claims
+- docs/ARCHITECTURE.md — Technical innovations (CRLF self-healing, lock reaper, vault)
+- CHANGELOG.md — Release history
 
-Then update/create the resume_brief.md artifact with:
-1. Short resume entry (3-4 bullet points, quantified)
-2. Extended resume entry (for DevOps/Platform roles)
-3. Technical interview Q&A (5 common questions with answers)
-4. Portfolio stats table (LoC, tests, platforms, key innovations)
-5. Skills matrix (what this project demonstrates)
+STEP 3 — CREATE ARTIFACT (resume_brief.md) with these sections:
 
-Every claim must be backed by verifiable code — no exaggeration.
+A. **Resume Bullet Points** (3-4 lines, STAR format — Situation/Task/Action/Result):
+   - Lead with measurable impact (e.g., "Engineered a 123-test, 15-module CLI...")
+   - Highlight architecture decisions, not just features
+   - Mention the constraint (zero-dependency, Bash 3.2) as a strength
 
-Use the run_command tool with Cwd=/media/sf_dev/pro/gideon for shell commands.
+B. **Extended Portfolio Entry** (for DevOps/Platform/SRE roles):
+   - Architecture highlights: atomic locking, PBKDF2 vault, managed block idempotency
+   - Security design: fail-closed guard hook, credential broker sandboxing
+
+C. **Interview Q&A** (5 questions a senior interviewer would ask about this project):
+   - "Why Bash instead of Go/Python?" → Answer with technical reasoning
+   - "How do you handle concurrency?" → Answer with the lock reaper design
+   - "Walk me through the security model" → Vault + guard + PAT sandboxing
+
+D. **Stats Table**: | Metric | Value | Verification Command |
+
+E. **Skills Matrix**: What technologies/patterns this project demonstrates (concurrency, cryptography, CI/CD, cross-platform, TDD)
+
+ANTI-INFLATION RULE: Every number in the resume must have a shell command that reproduces it. If you can't verify a claim, don't include it.
 ```
 
 ---
@@ -360,27 +471,37 @@ Please begin by acknowledging this prompt and immediately starting your Phase 1 
 ## 11. Live Setup Test
 
 ```
-I have a bash CLI project called "gitsetu" at /media/sf_dev/pro/gideon/
+You are a Test Pilot performing a live end-to-end validation of a CLI tool's setup wizard. Your goal: confirm the entire user journey works flawlessly from first run to SSH connectivity, then verify idempotency by running setup again.
 
-I want to do a LIVE test of the setup wizard. Guide me through:
+PROJECT: "GitSetu" — zero-dependency Bash 3.2+ Git identity orchestrator.
+LOCATION: /media/sf_dev/pro/gideon/
+WORKING DIRECTORY: Use Cwd=/media/sf_dev/pro/gideon for all shell commands.
+ENVIRONMENT: Debian 13 VM, VirtualBox shared folder at /media/sf_dev/pro/ (CRLF self-healing active).
 
-1. First, show me the dry run: `bash /media/sf_dev/pro/gideon/gitsetu setup --dry-run`
-2. Then run the real setup: `bash /media/sf_dev/pro/gideon/gitsetu setup`
+TEST PLAN:
+
+1. PRE-FLIGHT: Check current state
+   - `cat ~/.gitconfig 2>/dev/null | head -20` — Existing config
+   - `ls ~/.ssh/id_ed25519_* 2>/dev/null` — Existing keys
+   - `cat ~/.config/gitsetu/profiles.conf 2>/dev/null` — Existing profiles
+
+2. DRY RUN: `bash gitsetu setup --dry-run`
+   - Verify it shows the Blueprint without modifying any files
+
+3. LIVE SETUP: `bash gitsetu setup`
    - Profile 1 (default): label=global, name=Bhaskar Jha, email=hmmbhaskar@gmail.com
    - Profile 2: label=pro, name=Bhaskar Jha, email=bhaskarjha.com@gmail.com, dir=/media/sf_dev/pro
-3. After setup, verify: `bash /media/sf_dev/pro/gideon/gitsetu verify`
-4. Check status: `bash /media/sf_dev/pro/gideon/gitsetu status`
-5. Show me the generated files:
-   - cat ~/.gitconfig
-   - cat ~/.ssh/config
-   - cat ~/.config/gitsetu/profiles/pro.gitconfig
-   - cat ~/.config/gitsetu/profiles.conf
-6. Test SSH connectivity (after I add keys to GitHub)
 
-Note: This is a Debian 13 VM with VirtualBox shared folder at /media/sf_dev/pro/.
-The gitsetu script has CRLF self-healing so it works directly on vboxsf.
+4. POST-SETUP VERIFICATION:
+   - `bash gitsetu verify` — All checks green
+   - `bash gitsetu status` — Shows active profile
+   - Inspect generated files: ~/.gitconfig, ~/.ssh/config, ~/.config/gitsetu/profiles.conf, ~/.config/gitsetu/profiles/pro.gitconfig
 
-Use the run_command tool with Cwd=/media/sf_dev/pro/gideon for shell commands.
+5. IDEMPOTENCY TEST: Run `bash gitsetu setup` again with same inputs
+   - Verify no duplicate managed blocks, no duplicate SSH host entries
+
+6. SSH CONNECTIVITY (after user adds keys to GitHub):
+   - `ssh -T git@github.com-pro` — Should authenticate as pro profile
 ```
 
 ---
@@ -388,29 +509,37 @@ Use the run_command tool with Cwd=/media/sf_dev/pro/gideon for shell commands.
 ## 12. CI/CD Improvements
 
 ```
-I have a bash CLI project called "gitsetu" at /media/sf_dev/pro/gideon/
+You are a DevOps Engineer hardening the CI/CD pipeline of a pure-Bash open-source project. The pipeline must be secure (SHA-pinned, least-privilege), fast, and simple — no over-engineering for a bash CLI.
 
-Read the current CI config:
-- /media/sf_dev/pro/gideon/.github/workflows/ci.yml
+PROJECT: "GitSetu" — zero-dependency Bash 3.2+ Git identity orchestrator.
+LOCATION: /media/sf_dev/pro/gideon/
+WORKING DIRECTORY: Use Cwd=/media/sf_dev/pro/gideon for all shell commands.
 
-Also read:
-- /media/sf_dev/pro/gideon/README.md (badges section)
-- /media/sf_dev/pro/gideon/tests/helpers.sh (test framework)
+CONTEXT TO READ:
+1. .github/workflows/ci.yml — Current CI pipeline
+2. .github/workflows/ — All workflow files (release-drafter, PR lint, etc.)
+3. .github/dependabot.yml — Dependency update config
+4. Makefile — Test and lint targets
+5. README.md — Badge section
 
-I want to improve CI/CD. Consider adding:
-1. Badge that dynamically shows test pass/fail from CI
-2. Test output artifact upload in CI
-3. Release automation (create GitHub release on tag push)
-4. Dependabot or similar for Actions version pinning
-5. Matrix expansion (specific macOS versions, specific bash versions)
-6. ShellCheck with --severity=warning for strict linting
-7. Code coverage approximation (% of lib functions with tests)
+AUDIT CURRENT STATE:
+- Are all GitHub Actions pinned to full SHA (not just @v4)?
+- Is `permissions:` set to least-privilege (read-all default, scoped write)?
+- Does the matrix cover Linux, macOS, AND Windows with `shell: bash`?
+- Is ShellCheck running with appropriate severity level?
 
-Implement what makes sense. Update the CI workflow and README badges.
+IMPROVEMENTS TO EVALUATE:
+A. **Supply Chain**: Pin any unpinned Actions to SHA. Add permissions blocks if missing.
+B. **Test Visibility**: Upload test output as CI artifact for debugging failures.
+C. **Badge**: Ensure README has a working CI status badge.
+D. **Lint Gate**: ShellCheck must run BEFORE tests — fail fast.
+E. **Matrix**: Consider adding specific Bash version testing (3.2 on macOS, 5.x on Linux).
+F. **Release**: Verify release-drafter workflow creates draft releases on merge to main.
 
-Rules: Keep the CI simple — this is a bash project, not a monorepo.
-
-Use the run_command tool with Cwd=/media/sf_dev/pro/gideon for shell commands.
+CONSTRAINTS:
+- Keep CI under 5 minutes total runtime
+- No external dependencies beyond what GitHub provides (no Docker, no third-party test frameworks)
+- This is a bash project — the CI should reflect that simplicity
 ```
 
 ---
@@ -418,29 +547,37 @@ Use the run_command tool with Cwd=/media/sf_dev/pro/gideon for shell commands.
 ## 13. Code Refactor / Cleanup
 
 ```
-I have a bash CLI project called "gitsetu" at /media/sf_dev/pro/gideon/
+You are a Senior Code Reviewer performing a cleanup pass on a pure-Bash CLI tool. Your goal: reduce technical debt without changing external behavior. Every refactor must be backward-compatible and test-verified.
 
-Read all source files:
-- /media/sf_dev/pro/gideon/gitsetu
-- /media/sf_dev/pro/gideon/lib/*.sh
+PROJECT: "GitSetu" — zero-dependency Bash 3.2+ Git identity orchestrator.
+LOCATION: /media/sf_dev/pro/gideon/
+WORKING DIRECTORY: Use Cwd=/media/sf_dev/pro/gideon for all shell commands.
 
-Look for:
-1. Dead code (functions never called)
-2. Duplicated logic across modules
-3. Functions that are too long (>50 lines) and should be split
-4. Inconsistent naming conventions
-5. Missing error handling (functions that should return error codes but don't)
-6. Hardcoded values that should be in lib/core.sh constants
-7. Output going to stdout instead of stderr
-8. Variables not declared local inside functions
+STEP 1 — READ ALL SOURCE: gitsetu and every lib/*.sh file.
 
-Rules:
-- Bash 3.2 compatible
-- All variables quoted
-- Don't change function signatures (tests depend on them)
-- Run all tests after refactoring: `make test`
+STEP 2 — AUTOMATED SMELL DETECTION (run these):
+- `grep -rn 'function ' lib/*.sh gitsetu | grep -v '#'` — Functions to catalog
+- Dead code: For each function definition, grep for its name across all files. If only defined but never called → dead code
+- `grep -rn '[^$]PROFILE_' lib/*.sh gitsetu | grep -v 'local\|#\|PROFILE_COUNT'` — Unguarded array access
+- `grep -n 'echo ' lib/*.sh gitsetu | grep -v '>&2\|> \|>> \|/dev/null\|#\|printf'` — Stdout pollution (should be stderr)
+- `awk '/^[a-z_]+\(\)/{name=$1; lines=0} {lines++} lines>60{print FILENAME":"NR": "name" ("lines" lines)"}' lib/*.sh` — Long functions
 
-Use the run_command tool with Cwd=/media/sf_dev/pro/gideon for shell commands.
+STEP 3 — MANUAL CODE SMELL CATEGORIES:
+A. **Dead Code**: Functions defined but never called from any script
+B. **Duplicated Logic**: Manual array reload loops that should use load_profiles(). Functions that reimplement existing helpers.
+C. **Hardcoded Values**: Magic strings/numbers that should be in lib/core.sh constants (e.g., hardcoded key paths like "$HOME/.ssh/id_ed25519_${label}" instead of using PROFILE_KEYS)
+D. **Missing `local`**: Variables inside functions not declared local (namespace pollution)
+E. **Inconsistent Naming**: Mix of camelCase and snake_case? cmd_* vs non-cmd_* for subcommands?
+F. **Missing Error Handling**: Functions that can fail but don't return error codes, or callers that don't check return values
+G. **stdout Leaks**: Any user-facing output going to stdout instead of stderr (>&2)
+
+SAFETY CONSTRAINTS:
+- Do NOT change function signatures — tests depend on them
+- Do NOT change the profiles.conf format — existing users depend on it
+- Bash 3.2 compatible, all variables quoted
+- Run `make test` after EVERY refactor — 0 failures, 0 regressions
+
+DELIVERABLE: Create an artifact listing all smells found, then fix them one category at a time, running tests between each.
 ```
 
 ---
@@ -448,38 +585,54 @@ Use the run_command tool with Cwd=/media/sf_dev/pro/gideon for shell commands.
 ## 14. Onboard Yourself (General Context)
 
 ```
-I have a bash CLI project called "gitsetu" at /media/sf_dev/pro/gideon/
+You are a new team member onboarding onto a pure-Bash CLI project. Your task is to read the codebase deeply enough to work on it safely. After reading, you will summarize your understanding — I will then give you a specific task.
 
-This is a zero-dependency bash 3.2+ CLI tool that automates multi-identity Git and SSH setup across Linux, macOS, and Windows.
+PROJECT: "GitSetu" — zero-dependency Bash 3.2+ filesystem orchestrator for Git identity and SSH management across Linux, macOS, and Windows.
+LOCATION: /media/sf_dev/pro/gideon/
+WORKING DIRECTORY: Use Cwd=/media/sf_dev/pro/gideon for all shell commands.
 
-Please read these files to fully understand the project before I give you a task:
+READ THESE FILES IN ORDER:
+1. README.md — What the tool does, CLI reference table, competitive positioning
+2. docs/ARCHITECTURE.md — Module dependency graph, design patterns, data flow
+3. docs/MANIFESTO.md — Why specific design decisions were made
+4. lib/core.sh — Constants, GITSETU_VERSION, the 9 parallel state arrays, load_profiles(), remove_profile_at_index()
+5. gitsetu — Main script (~720 lines): CRLF self-healing (line ~21), gitsetu_source() pattern, cmd_* dispatch, global cleanup trap, cmd_prompt() fast-path
+6. Skim all lib/*.sh files — understand each module's boundary
 
-1. /media/sf_dev/pro/gideon/README.md — What the tool does, CLI reference
-2. /media/sf_dev/pro/gideon/docs/ARCHITECTURE.md — How it's built (module diagram, CRLF self-healing, managed blocks, config formats)
-3. /media/sf_dev/pro/gideon/docs/VISION.md — Why design decisions were made
-4. /media/sf_dev/pro/gideon/lib/core.sh — Constants, state arrays, version
-5. /media/sf_dev/pro/gideon/gitsetu — Main script (note: CRLF self-healing block at top, gitsetu_source pattern for loading libs)
+KEY ARCHITECTURAL CONCEPTS TO UNDERSTAND:
+- **9 Parallel Arrays**: PROFILE_LABELS, _NAMES, _EMAILS, _DIRS, _PROVIDERS, _SIGNS, _KEYS, _USERS, _PATS — always kept in index-sync
+- **Managed Block Markers**: `# [gitsetu:managed:start]` / `# [gitsetu:managed:end]` — used for idempotent config injection
+- **CRLF Self-Healing**: VirtualBox shared folders corrupt line endings; gitsetu re-execs itself through `tr -d '\r'`
+- **Cleanup Trap**: GITSETU_CLEANUP_FILES/DIRS arrays registered on EXIT/SIGINT/SIGTERM for temp file safety
+- **Atomic Writes**: All config mutations use mktemp + mv (never write directly to target)
+- **gitsetu_source()**: All lib files loaded via eval to handle CRLF — never use raw `source`
 
-Key things to know:
-- Bash 3.2 compatible (NO declare -A, mapfile, ${var,,})
-- All output to stderr, prompts from /dev/tty
-- Managed block markers for idempotent config updates
-- Tests use isolated $HOME in /tmp (never touch real config)
-- VirtualBox shared folder causes CRLF — the script self-heals at runtime
-- Use Cwd=/media/sf_dev/pro/gideon for the run_command tool
+GOTCHAS (learned from real production bugs):
+- Tests can mask bugs by exporting variables that production code doesn't define
+- The profiles.conf format uses colons as delimiters — colons in values break parsing
+- When adding a new PROFILE_* array, you must update: load_profiles(), remove_profile_at_index(), write_profiles_conf(), and cmd_remove()
+- cmd_prompt() is the hot path (~2ms) — it bypasses all lib loading for performance
 
-After reading, summarize your understanding and I'll give you the task.
+HARD CONSTRAINTS:
+- Bash 3.2: NO declare -A, NO mapfile, NO ${var,,}, NO |&, NO [[ -v ]]
+- All output to stderr (>&2), stdout kept clean for piping
+- All prompts read from /dev/tty (not stdin)
+- Tests use isolated $HOME in /tmp — never touch real ~/.ssh or ~/.gitconfig
+
+After reading, provide a structured summary: (1) What the tool does, (2) How the state model works, (3) The key design patterns you identified, (4) Any questions.
 ```
 
 ---
 
 ## Tips for Using These Prompts
 
-1. **Always copy the FULL prompt** — the context setup at the beginning is critical
-2. **Replace `[PLACEHOLDERS]`** with your specific details
-3. **The Cwd workaround** (`/media/sf_dev/pro/gideon`) is needed because the workspace validator may not recognize the gitsetu path
-4. **If ShellCheck isn't installed**, the AI will skip that step — install with `sudo apt install shellcheck` when you can
-5. **Each prompt is self-contained** — no need to reference previous conversations
+1. **Always copy the FULL prompt** — the persona, context, and constraints at the beginning are critical for output quality
+2. **Replace `[PLACEHOLDERS]`** with your specific details before pasting
+3. **Working directory**: Always use `Cwd=/media/sf_dev/pro/gideon` for the run_command tool
+4. **Each prompt is self-contained** — designed for a fresh AI session with zero conversation history
+5. **Prompt structure follows the PCRF pattern**: Persona → Context → Request → Format
+6. **Anti-patterns sections** are informed by real bugs found during production audits — they guide the AI to look where bugs actually hide
+7. **If ShellCheck isn't installed**, the AI will skip lint steps — install with `sudo apt install shellcheck`
 
 ---
 
@@ -578,3 +731,83 @@ Produce a `go_nogo_audit.md` artifact containing:
 4.  **Final Polish Roadmap**: If there are non-blockers, what should we immediately patch post-release?
 ```
 
+---
+
+## 17. Performance Profiling
+
+```
+You are a Performance Engineer analyzing the latency and resource efficiency of a pure-Bash CLI tool. The critical performance requirement: `gitsetu prompt` must execute in under 20ms because it runs on EVERY shell prompt (PS1/PROMPT_COMMAND).
+
+PROJECT: "GitSetu" — zero-dependency Bash 3.2+ Git identity orchestrator.
+LOCATION: /media/sf_dev/pro/gideon/
+WORKING DIRECTORY: Use Cwd=/media/sf_dev/pro/gideon for all shell commands.
+
+STEP 1 — UNDERSTAND THE HOT PATH:
+1. gitsetu — Find cmd_prompt(). This is the ONLY performance-critical function. It's intercepted BEFORE lib modules are sourced.
+2. lib/core.sh — load_profiles() is called by most commands. How many disk reads does it do?
+3. lib/setup.sh — execute_blueprint() is called once during setup. Not latency-critical.
+
+STEP 2 — MEASURE:
+- `time bash gitsetu prompt` — Actual wall-clock latency (run 10 times, report median)
+- `bash -x gitsetu prompt 2>&1 | wc -l` — Trace depth (fewer lines = fewer operations)
+- `grep -c '$(' gitsetu` — Subshell count in main script
+- `grep -c '$(' lib/*.sh` — Subshell count in libraries
+- `grep -rn 'cat \|read.*<' lib/*.sh gitsetu | wc -l` — Disk I/O operations
+
+STEP 3 — ANALYZE:
+A. **cmd_prompt() fast-path**: Does it truly bypass all 14 lib module loads? Is the profiles.conf read the ONLY disk I/O?
+B. **Subshell avoidance**: Any unnecessary $(command) where a variable or builtin would suffice?
+C. **Loop efficiency**: Are there O(n²) patterns in profile matching? (e.g., nested loops over PROFILE_* arrays)
+D. **Startup cost**: How long does gitsetu_source() take to load all libs? (only matters for non-prompt commands)
+E. **Redundant I/O**: Is profiles.conf read multiple times in a single command invocation?
+
+DELIVERABLE: Performance profile with:
+| Operation | Latency | Subshells | Disk Reads | Verdict |
+Recommendations for any operation exceeding 5ms in the hot path.
+```
+
+---
+
+## 18. User Experience & DX Audit
+
+```
+You are a UX Engineer and Developer Experience (DX) specialist. Audit this CLI tool's entire user-facing surface: error messages, help text, interactive prompts, output formatting, and failure recovery. The goal is to ensure every user interaction is clear, actionable, and professional.
+
+PROJECT: "GitSetu" — zero-dependency Bash 3.2+ Git identity orchestrator.
+LOCATION: /media/sf_dev/pro/gideon/
+WORKING DIRECTORY: Use Cwd=/media/sf_dev/pro/gideon for all shell commands.
+
+STEP 1 — EXPERIENCE THE TOOL AS A USER:
+- `bash gitsetu --help` — Is the help text clear and complete?
+- `bash gitsetu setup --help` — Do subcommands have their own help?
+- `bash gitsetu status` — Is the output scannable? Does it use color meaningfully?
+- `bash gitsetu verify` — Are check/cross symbols used effectively? Is the table aligned?
+- `bash gitsetu backup --help` — Is the vault workflow intuitive?
+
+STEP 2 — AUDIT ERROR MESSAGES:
+Read lib/ui.sh (print_error, print_warning, print_info, print_success, print_step).
+Then grep for ALL print_error calls across the codebase:
+- `grep -rn 'print_error' lib/*.sh gitsetu` — Catalog every error message
+- For each: Is it actionable? Does it tell the user WHAT failed and HOW to fix it?
+- Are there any bare `echo` or `printf` that bypass the print_* system?
+
+STEP 3 — AUDIT INTERACTIVE UX:
+A. **Setup Wizard (lib/setup.sh)**: Is the Blueprint Dashboard scannable? Does the TUI feel professional?
+B. **PAT Input (lib/ui.sh:ask_password)**: Is `stty -echo` used? Is there a visual indicator that input is being collected?
+C. **Confirmation Prompts**: Does confirm() default to a safe option (n/no) for destructive actions?
+D. **Progressive Disclosure**: Can a beginner get started with just `gitsetu setup`? Are advanced options hidden until needed?
+E. **Error Recovery**: If setup fails midway, does the user see a clear error + suggestion? Are temp files cleaned up?
+
+STEP 4 — AUDIT DOCUMENTATION UX:
+- docs/TROUBLESHOOTING.md — Does each error message in the code have a corresponding troubleshooting entry?
+- README.md — Is the quick-start genuinely achievable in < 60 seconds?
+
+STEP 5 — CROSS-CHECK WITH ACTUAL OUTPUT:
+For 3 common error scenarios, trigger them and verify the output matches TROUBLESHOOTING.md:
+1. Run `gitsetu verify` with no profiles configured
+2. Run `gitsetu status` outside any profile directory
+3. Run `gitsetu guard` with a missing profiles.conf
+
+DELIVERABLE: UX audit report with:
+| Area | Issue | Severity (UX-CRITICAL/UX-HIGH/UX-MEDIUM/UX-LOW) | Current Message | Recommended Message |
+```
