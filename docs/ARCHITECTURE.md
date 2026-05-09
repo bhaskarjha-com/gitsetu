@@ -35,7 +35,7 @@ When Git pulls over HTTPS, it streams an authentication request to `gitsetu cred
 
 ### 4. Zero-Trust Atomic Operations
 Because Bash scripts are vulnerable to race conditions (Time-of-Check to Time-of-Use), GitSetu performs all filesystem modifications atomically:
-* File edits are written to a temporary file (`mktemp`) and then hot-swapped using an atomic `mv`.
+* File edits are written to a pre-registered randomized temporary path (`$TMPDIR/..._$$_${RANDOM}`) and then hot-swapped using an atomic `mv` to guarantee no `SIGINT` leaks.
 * The `lib/guard.sh` file utilizes `mkdir` to establish an atomic system lock during multi-process operations.
 * A unified `EXIT/SIGINT/SIGTERM` trap ensures that no orphaned lock files or raw credentials ever leak if the user mashes `Ctrl+C`.
 

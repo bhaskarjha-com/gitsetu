@@ -236,7 +236,7 @@ Audit for:
 1. File permissions: Are SSH keys created with chmod 600? Is ~/.ssh/config 600?
 2. eval/exec usage: Any eval with user-supplied input? (should be zero)
 3. Input injection: Can profile labels/emails inject into config files?
-4. Temp file safety: Are temp files created securely (mktemp)?
+4. Temp file safety: Are temp files created securely (pre-registered `$TMPDIR/..._$$_${RANDOM}` paths to avoid TOCTOU)?
 5. Backup exposure: Could backups leak sensitive data?
 6. Guard hook: Does it make any network calls? (should not)
 7. Path traversal: Can user input escape intended directories?
@@ -492,7 +492,7 @@ You are not auditing scripts. You are auditing a highly concurrent, state-mutati
 
 **Read every file. No script is "low-risk."** Read `gitsetu`, every file in `lib/`, every file in `tests/`, `install.sh`, `uninstall.sh`, and the `Makefile`. Skip nothing. Do not assume `helpers.sh` or the new `test_*.sh` regression suites (all 123 of them) are perfectly written.
 
-**Trace, don't just read.** We recently implemented a unified `GITSETU_CLEANUP_FILES` array and trapped it to `EXIT/SIGINT/SIGTERM`. Trace this lifecycle: What happens if `kill -9` hits exactly between the `mktemp` creation and the array registration? Does the trap inadvertently swallow exit codes (`$?`)? What happens if `mv` fails during an atomic swap but the trap still fires?
+**Trace, don't just read.** We recently implemented a unified `GITSETU_CLEANUP_FILES` array and trapped it to `EXIT/SIGINT/SIGTERM`. Trace this lifecycle: We replaced `mktemp` with pre-registered randomized `$TMPDIR` paths to avoid TOCTOU races. What happens if `kill -9` hits exactly between string generation and `tar` execution? Does the trap inadvertently swallow exit codes (`$?`)? What happens if `mv` fails during an atomic swap but the trap still fires?
 
 **Attack the Concurrency Reaper.** We implemented stale POSIX lock reaping (writing `$$` to `profiles.lock/pid` and checking `kill -0`). Audit this heavily: What happens if two parallel headless processes simultaneously detect a dead PID and both attempt to reap and steal the lock at the exact same millisecond? Is there a secondary race condition in the reaper itself?
 
@@ -518,7 +518,7 @@ You are not auditing scripts. You are auditing a highly concurrent, state-mutati
 
 **Check for dual state.** Search for cases where the same concept (e.g., "is commit signing enabled?") is stored in `profiles.conf` AND in the generated `profile.gitconfig`. Verify they stay perfectly in sync when a user runs an update or manual edit.
 
-**Count things.** Count unquoted variables. Count `mktemp` usages vs array registrations. Count `eval` or `exec` statements. Count how many `sed` commands rely on GNU extensions instead of strict POSIX. Numbers expose vulnerabilities that casual reading misses.
+**Count things.** Count unquoted variables. Count pre-registered random path usages vs array registrations. Count `eval` or `exec` statements. Count how many `sed` commands rely on GNU extensions instead of strict POSIX. Numbers expose vulnerabilities that casual reading misses.
 ```
 
 ---
@@ -526,7 +526,7 @@ You are not auditing scripts. You are auditing a highly concurrent, state-mutati
 ## 16. Holistic Production Readiness Go/No-Go Audit
 
 ```
-You are the Principal Systems Engineer and Head of QA. We have developed GitSetu (v1.1.1), a zero-dependency, pure-bash filesystem orchestrator for Git identity and SSH management. It features a POSIX lock reaper, an OpenSSL encrypted state vault, native OS credential brokering (macOS/Linux), FIDO2 bootstrapping, and sub-millisecond PS1 prompt injection. 
+You are the Principal Systems Engineer and Head of QA. We have developed GitSetu (v1.1.1), a zero-dependency, pure-bash filesystem orchestrator for Git identity and SSH management. It features a POSIX lock reaper, an OpenSSL encrypted state vault, native OS credential brokering (macOS/Linux), FIDO2 bootstrapping, and ultra-low latency (~20ms) PS1 prompt injection. 
 
 Before we push this build to the public, I need you to conduct a merciless, holistic "Go/No-Go" Production Readiness Audit. Evaluate the project across every possible technical, logical, and user-experience dimension.
 
@@ -538,17 +538,17 @@ Before we push this build to the public, I need you to conduct a merciless, holi
 *   Are environment paths safely sanitized across Git Bash (Windows), macOS, and Debian?
 
 **2. State Mutability, Concurrency, & Idempotency**
-*   Evaluate our lock acquisition (`mkdir`-based atomic locks) and our 3-cycle Phantom Deadlock Prover. Can it still race? 
+*   Evaluate our lock acquisition (`mkdir`-based atomic locks) and our 50-cycle (5-second) Phantom Deadlock Prover. Can it still race? 
 *   If `gitsetu run` is invoked 100 times in parallel by a CI pipeline, does our cleanup trap (`GITSETU_CLEANUP_FILES`) or lock reaper ever accidentally clobber someone else's state?
 *   Is our setup fully idempotent? What happens if `gitsetu setup` is run on top of an already perfectly configured `~/.gitconfig`?
 
 **3. Cryptography & Security Boundaries**
-*   Audit our OpenSSL vault (`gitsetu backup`). Are we correctly failing-closed if decryption fails? Are `mktemp` staging directories completely wiped on `SIGINT`?
+*   Audit our OpenSSL vault (`gitsetu backup`). Are we correctly failing-closed if decryption fails? Are randomized staging files completely wiped on `SIGINT`?
 *   Audit our Credential Broker. Are Personal Access Tokens (PATs) successfully sandboxed per-profile without bleeding into the global Git credential helper context?
 *   Review our `gitsetu guard` pre-commit hook. Is the subversion detection logic flawless? Does it allow local repository hooks (Husky, Lefthook) to pass-through seamlessly?
 
 **4. Performance & Execution Latency**
-*   Are subshells avoided wherever possible? Specifically analyze `gitsetu prompt` — does it truly execute in sub-millisecond time, or does it drag down terminal load times?
+*   Are subshells avoided wherever possible? Specifically analyze `gitsetu prompt` — does it truly execute in ultra-low latency (~20ms) time, or does it drag down terminal load times?
 *   Is the JSON/config parsing efficient? Are there any unnecessary disk I/O operations blocking the critical path during profile switching?
 
 **5. Platform Portability & Distribution Pipeline**
