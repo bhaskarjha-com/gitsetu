@@ -59,6 +59,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Blueprint Array Init (Critical):** `generate_initial_blueprint()` did not initialize `PROFILE_USERS[]` or `PROFILE_PATS[]`, causing potential unbound variable crash under `set -u` when the interactive wizard accessed these arrays.
 - **Env Var Leak (High):** `MANAGED_BLOCK` was `export`ed in `write_global_gitconfig()` to pass to `awk` via `ENVIRON` but never `unset` afterward, leaking all profile path data to child processes.
 - **Empty Array Cleanup (Medium):** `gitsetu_global_cleanup()` iterated `${GITSETU_CLEANUP_FILES[@]}` without the `+` guard, which crashes Bash 3.2 under `set -u` when no temp files were created.
+
+### Fixed (macOS CI Compatibility)
+- **macOS CI Hang (Critical):** `security add-internet-password` hangs indefinitely in headless CI environments (no unlocked user keychain). `detect_os()` now supports a filesystem marker file (`$HOME/.config/gitsetu/.test_os`) for OS override, since macOS bash 3.2 does not propagate environment variables through pipelines in background subshells.
+- **Eval Stdin Leak:** `gitsetu_source()` used `eval "$(tr -d '\r' < file)"` which runs `tr` in a command substitution subshell that inherits and can consume piped stdin on bash 3.2. Replaced with temp-file + `source` pattern.
+- **Process Substitution with Exec:** CRLF self-healing used `exec bash <(tr ...)` which has unreliable fd handling on bash 3.2. Replaced with temp-file exec.
+- **Chmod Test Portability:** Added `can_chmod_600()` runtime probe to skip permission assertions on filesystems that ignore `chmod 600` (Docker, VirtualBox shared folders, CI runners).
 ## [1.1.1] - 2026-05-07
 
 ### Fixed

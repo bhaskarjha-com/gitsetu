@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # tests/test_credential.sh — Tests for the Git credential helper broker
 #
-# Uses timeout + bash -x tracing to diagnose macOS CI hangs.
-# If a subprocess hangs, the trace log reveals exactly which line blocked.
+# Uses a portable POSIX timeout watchdog (macOS lacks GNU `timeout`).
+# If a subprocess hangs, the watchdog kills it after 15s and the test
+# fails cleanly instead of hanging CI forever.
 set -euo pipefail
 
 source "$(dirname "${BASH_SOURCE[0]}")/helpers.sh"
@@ -15,10 +16,10 @@ GITSETU_EXE="${GITSETU_EXE%$'\r'}"
 # On macOS CI, `security add-internet-password` hangs because there is no
 # unlocked user keychain in headless environments.
 #
-# We use a marker file ($HOME/.config/gitsetu/.test_os) instead of env vars
-# because macOS bash 3.2 does NOT propagate environment variables through
-# pipelines inside background subshells (confirmed empirically: export,
-# POSIX command prefix, and subshell export all fail).
+# We use a marker file ($HOME/.config/gitsetu/.test_os) because macOS
+# bash 3.2 does NOT propagate environment variables through pipelines
+# inside background subshells (confirmed empirically: export, POSIX
+# command prefix, and subshell export all fail).
 #
 # detect_os() checks for this file and sets GITSETU_OS to its contents,
 # bypassing native OS detection and preventing keychain calls.
@@ -26,11 +27,9 @@ mkdir -p "$HOME/.config/gitsetu"
 printf 'test' > "$HOME/.config/gitsetu/.test_os"
 
 # ------------------------------------------------------------------------------
-# Helper: run gitsetu credential with timeout and trace capture.
-# If the command hangs, dumps the bash -x trace to stderr for CI diagnostics.
+# Helper: run gitsetu credential with a portable POSIX timeout watchdog.
 #
-# Usage: _run_credential <timeout_secs> <stdin_data> [--quiet] <args...>
-#   --quiet: suppress trace dump on failure (for expected-failure calls)
+# Usage: _run_credential <timeout_secs> <stdin_data> [args...]
 # Returns: exit code of the gitsetu command, or 137 on timeout (SIGKILL)
 # Stdout: whatever gitsetu prints to stdout (for credential get)
 # ------------------------------------------------------------------------------
@@ -39,19 +38,12 @@ _run_credential() {
     local stdin_data="$2"
     shift 2
 
-    local quiet=0
-    if [[ "${1:-}" == "--quiet" ]]; then
-        quiet=1
-        shift
-    fi
-
-    local trace_log="$HOME/.credential_trace_$$.log"
     local stdout_log="$HOME/.credential_stdout_$$.log"
 
-    # Run with bash -x in a background subshell (portable — no GNU timeout needed).
-    # OS override is via marker file, not env var (bash 3.2 pipeline limitation).
-    (printf "%b" "$stdin_data" | bash -x "$GITSETU_EXE" "$@" \
-        >"$stdout_log" 2>"$trace_log") &
+    # Run in a background subshell (portable — no GNU timeout needed).
+    # OS override is via marker file, not env var (bash 3.2 limitation).
+    (printf "%b" "$stdin_data" | bash "$GITSETU_EXE" "$@" \
+        >"$stdout_log" 2>/dev/null) &
     local cmd_pid=$!
 
     # Watchdog: kill the command after timeout_secs
@@ -65,16 +57,6 @@ _run_credential() {
     # Kill the watchdog (command finished before timeout)
     kill "$watchdog_pid" 2>/dev/null || true
     wait "$watchdog_pid" 2>/dev/null || true
-
-    if [[ $rc -ne 0 ]] && [[ $quiet -eq 0 ]]; then
-        # Dump trace on failure (unless quiet mode for expected failures)
-        printf '    FAILED (exit %d) — bash -x trace (last 50 lines):\n' "$rc" >&2
-        printf '    ─────────────────────────────────────────────────\n' >&2
-        tail -50 "$trace_log" 2>/dev/null | sed 's/^/    /' >&2
-        printf '    ─────────────────────────────────────────────────\n' >&2
-    fi
-
-    rm -f "$trace_log"
 
     if [[ $rc -ne 0 ]]; then
         rm -f "$stdout_log"
@@ -130,7 +112,7 @@ EOF
     }
 
     local get_output_after
-    get_output_after=$(_run_credential 15 "$get_input" --quiet credential get || true)
+    get_output_after=$(_run_credential 15 "$get_input" credential get || true)
     if [[ -n "$get_output_after" ]]; then
         echo "Credentials were not erased properly. Output: $get_output_after"
         return 1
@@ -150,7 +132,7 @@ EOF
     # SSH protocol should be ignored
     local get_input="protocol=ssh\nhost=github.com\n\n"
     local get_output
-    get_output=$(_run_credential 15 "$get_input" --quiet credential get) || true
+    get_output=$(_run_credential 15 "$get_input" credential get || true)
 
     assert_equals "" "$get_output" "ssh protocol is ignored" || return 1
 }
@@ -165,7 +147,7 @@ EOF
 
     local get_input="protocol=https\nhost=github.com\n\n"
     local get_output
-    get_output=$(_run_credential 15 "$get_input" --quiet credential get) || true
+    get_output=$(_run_credential 15 "$get_input" credential get || true)
 
     assert_equals "" "$get_output" "empty output when outside profile directory" || return 1
 }
