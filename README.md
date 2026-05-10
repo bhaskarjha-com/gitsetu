@@ -1,149 +1,119 @@
 <div align="center">
 
-# GitSetu 
-*(git · se · tu)* / Sanskrit: bridge
+<img src="docs/assets/logo.png" alt="GitSetu" width="280" />
 
-**The bridge between your identities and your repositories.**  
-*Zero deps. No daemon. Pure bash.*
+**The bridge between your identities and your repositories.**
 
-[![CI](https://img.shields.io/badge/CI-passing-brightgreen)](.github/workflows/ci.yml)
-[![ShellCheck](https://img.shields.io/badge/ShellCheck-passing-brightgreen)](https://www.shellcheck.net/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Bash 3.2+](https://img.shields.io/badge/Bash-3.2%2B-orange)](https://www.gnu.org/software/bash/)
-[![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey)]()
+*Zero deps. No daemon. Pure Bash.*
 
-<br/>
+[![CI](https://github.com/bhaskarjha-com/gitsetu/actions/workflows/ci.yml/badge.svg)](https://github.com/bhaskarjha-com/gitsetu/actions/workflows/ci.yml)
+[![ShellCheck](https://github.com/bhaskarjha-com/gitsetu/actions/workflows/ci.yml/badge.svg)](https://www.shellcheck.net/)
+[![License: MIT](https://img.shields.io/github/license/bhaskarjha-com/gitsetu?color=blue)](LICENSE)
+[![Bash 3.2+](https://img.shields.io/badge/bash-3.2%2B-orange?logo=gnubash&logoColor=white)](https://www.gnu.org/software/bash/)
+[![Tests](https://img.shields.io/badge/tests-165%20passing-brightgreen)]()
+[![Platform](https://img.shields.io/badge/platform-linux%20%7C%20macos%20%7C%20windows-lightgrey)]()
 
 </div>
 
+<br/>
+
+<p align="center">
+  <img src="docs/assets/demo.png" alt="GitSetu Terminal Demo" width="600" />
+</p>
+
+<br/>
+
+## Install
+
+```bash
+curl -sL https://raw.githubusercontent.com/bhaskarjha-com/gitsetu/main/install.sh | bash
+```
+
+> The installer clones the repository to `~/.local/share/gitsetu` and creates a global `git-setu` symlink — run it as `gitsetu` or `git setu`.
+
 ---
 
-## 01. The Problem
+## Why GitSetu?
 
-**Wrong author commits**
-You push a freelance project and your work email shows up in the git log. Your client sees your employer's domain.
-
-**SSH key collisions**
-One SSH key for three GitHub accounts means GitHub can't tell who you are. Pushes fail, permissions break.
-
-**Manual global config**
-You edit `~/.gitconfig` before every context switch. Then you forget. Again.
-
-**Heavy tooling**
-Every solution requires Node, Python, or a background daemon watching your filesystem. Just to change a name.
+| Problem | What happens | GitSetu fix |
+|---------|-------------|-------------|
+| 🔴 **Wrong author commits** | You push a freelance project and your work email shows up in the log | Directory-scoped `includeIf` auto-switches identity |
+| 🔴 **SSH key collisions** | One SSH key for three GitHub accounts — pushes fail silently | Dedicated ED25519 keypair per profile |
+| 🔴 **Manual global config** | Edit `~/.gitconfig` before every context switch, then forget | One-time setup, automatic forever |
+| 🔴 **Heavy tooling** | Every solution requires Node, Python, or a background daemon | Pure Bash 3.2. Zero dependencies. |
 
 ---
 
-## 02. How GitSetu Works
+## Quick Start
 
-GitSetu automatically manages multiple Git identities and SSH keys on a single machine. It provisions distinct keys, injects directory-based conditional configs, and writes SSH host aliases — so you never accidentally commit as the wrong author ever again.
+**1. Add your identities:**
+```bash
+gitsetu setup    # Interactive guided wizard
+```
 
-1. **You declare an identity:** Run `gitsetu add`. Name, email, directory scope.
-2. **GitSetu provisions a dedicated SSH key:** Generates a unique ED25519 SSH keypair per profile (`~/.ssh/id_ed25519_<label>`). No shared keys between accounts.
-3. **Writes a scoped `~/.gitconfig` include:** Injects an `includeIf` block that activates your name and email — only inside that directory tree.
-4. **Creates an SSH host alias:** Writes a `Host` block in `~/.ssh/config`. 
+**2. Check your setup:**
+```bash
+$ gitsetu status
+  work       dev@company.com    ~/work      ✓ active
+  personal   me@gmail.com       ~/personal
+  freelance  ak@freelance.io    ~/clients
+```
 
-### The "Magical Clone" Workflow
-Other tools require you to memorize custom SSH host aliases (`git clone git@github-work:repo.git`). We reject this. With GitSetu, you just clone normally. Git's native `includeIf` intercepts the clone mid-flight and injects the correct key.
+**3. Just `cd` and work. GitSetu does the rest.**
+```text
+$ cd ~/work/my-api && git commit -m "fix: auth bug"
+Author: Aditya Kumar <dev@company.com> ← correct, automatically
+```
+
+> **Global Fallback:** By default, GitSetu enforces `useConfigOnly = true` — commits outside a mapped directory are blocked to prevent identity leakage. Want a catch-all? Set one profile's directory to `~/` and it becomes the fallback.
+
+---
+
+## Features
+
+| | Feature | Description |
+|---|---------|-------------|
+| 🔑 | **SSH Key Generation** | Dedicated ED25519 keypair per profile (`~/.ssh/id_ed25519_<label>`) |
+| 🔐 | **HTTPS Credential Broker** | Per-profile PAT management via macOS Keychain or Linux `secret-tool` |
+| 🛡️ | **Identity Guard** | Pre-commit hook blocks commits if your email doesn't match the directory |
+| ⚡ | **2ms Shell Prompt** | `gitsetu prompt` — zero-subshell `$PS1` integration |
+| 📦 | **Encrypted Backup** | Export/restore your entire identity state with OpenSSL encryption |
+| 🔄 | **Idempotent & Non-Destructive** | Safe to run 100 times. Managed blocks — your custom config is never touched |
+| 🖥️ | **Cross-Platform** | Linux, macOS, Windows (Git Bash), WSL — one tool everywhere |
+| 🏗️ | **Zero Dependencies** | Pure Bash. No Node, Python, Go, or package managers required |
+
+---
+
+## How It Works
+
+GitSetu provisions a complete Git identity infrastructure from scratch. No manual config editing, no memorizing SSH aliases.
 
 ```mermaid
 graph TD
-    A[cd ~/work] --> B[git clone git@github.com:repo]
-    B --> C{Git creates local .git}
-    C --> D[Trigger includeIf rule]
-    D --> E[Inject work SSH Key]
-    E --> F[Authenticate with GitHub]
+    A["cd ~/work"] --> B["git clone git@github.com:repo"]
+    B --> C{"Git creates local .git"}
+    C --> D["Trigger includeIf rule"]
+    D --> E["Inject work SSH Key"]
+    E --> F["Authenticate with GitHub"]
     
     classDef highlight fill:#00c4cc,stroke:#fff,stroke-width:2px,color:#fff;
     class D,E highlight;
 ```
 
----
+**The "Magical Clone"** — Other tools require custom SSH host aliases (`git@github-work:repo`). GitSetu uses Git's native `includeIf` to intercept clones mid-flight and inject the correct key. You just `git clone` normally. It works.
 
-## 03. Quick Start
-
-**1. Install GitSetu:**
-```bash
-curl -sL https://raw.githubusercontent.com/bhaskarjha-com/gitsetu/main/install.sh | bash
-```
-> **Note:** The installer securely clones the repository to `~/.local/share/gitsetu` and creates a `git-setu` global symlink, meaning you can run GitSetu natively as `git setu`!
-
-**2. Add your identities once:**
-```bash
-$ gitsetu add personal "Aditya Kumar" aditya@gmail.com ~/personal
-$ gitsetu add work "Aditya Kumar" aditya@company.com ~/work
-$ gitsetu add freelance "AK Dev" ak@freelance.io ~/clients
-```
-*(Prefer a guided setup? Just run `gitsetu setup` to launch the interactive TUI).*
-
-**3. Verify your setup:**
-```bash
-$ git setu status
-personal aditya@gmail.com ~/personal ✓ active
-work aditya@company.com ~/work
-freelance ak@freelance.io ~/clients
-```
-
-**4. From now on — just `cd` and work. GitSetu does the rest.**
-```text
-$ cd ~/work/my-api && git commit -m "fix: auth bug"
-Author: Aditya Kumar <aditya@company.com> ← correct, automatically
-```
-
-> **Pro Tip: Setting a Global Fallback**  
-> By default, GitSetu enforces maximum security. If you commit outside a mapped directory, Git will intentionally block you to prevent identity leakage (`useConfigOnly = true`). 
-> If you *want* a global fallback (e.g., use your personal email everywhere by default), simply edit that profile and set its directory to your home folder (`~/`). Git's path-matching will treat it as a catch-all fallback, while more specific directories (like `~/work`) will safely override it!
+What GitSetu writes for each profile:
+1. **SSH keypair** — `~/.ssh/id_ed25519_<label>` (unique per profile)
+2. **Scoped gitconfig** — `includeIf` block in `~/.gitconfig` for the profile directory
+3. **SSH host alias** — `Host` block in `~/.ssh/config`
 
 ---
 
-## 04. What You Get
+## Identity Guard
 
-- **zero dependency:** Pure Bash. No Node. No Python. No package manager.
-- **no daemon:** GitSetu writes config once and lets Git's native `includeIf` do the switching. Zero background processes. Zero memory footprint.
-- **directory-scoped:** Identity follows your cursor. Enter `~/work` — you're your work self.
-- **ssh & https isolated:** Each profile gets its own ED25519 keypair and securely vaulted Personal Access Token (PAT) for HTTPS cloning.
-- **non-destructive:** Your existing config is safe. GitSetu appends to `~/.gitconfig` and `~/.ssh/config` with clearly marked blocks. Uninstall removes exactly what it added (use `gitsetu teardown --deep` to also strip local repo overrides).
-- **open standard:** No lock-in. GitSetu generates standard Git config and standard SSH config. You can read, edit, or delete what it creates.
-
-### Shell Autocompletion
-GitSetu provides rich <kbd>TAB</kbd> autocompletion for subcommands and profile names.
-Add the following to your `~/.bashrc` or `~/.zshrc`:
-```bash
-source ~/.local/share/gitsetu/lib/completion.sh
-```
-
-### Shell Prompt Integration (`$PS1`)
-Visual confirmation is critical in zero-trust environments. You can configure your terminal prompt to display your active GitSetu profile (e.g., `[work]`) so you always know who you are before you commit.
-
-Because it is built with 100% native Bash parameter expansion (zero subshells), `gitsetu prompt` executes in under **2 milliseconds**, guaranteeing zero terminal lag.
-
-**Bash (`~/.bashrc`):**
-```bash
-export PS1='\[\e[36m\]$(gitsetu prompt)\[\e[0m\] \w $ '
-```
-
-**Zsh (`~/.zshrc`):**
-```zsh
-PROMPT='%F{cyan}$(gitsetu prompt)%f %~ $ '
-```
-
-### Native Git Credential Broker (HTTPS / PATs)
-If your corporate firewall blocks SSH (Port 22), you can use GitSetu's pure-Bash **Git Credential Broker** to manage your Personal Access Tokens (PATs) for HTTPS cloning.
-
-Unlike standard Git credential managers that get confused and return 403 Forbidden errors when you have multiple accounts for the same host (e.g., `github.com`), GitSetu intercepts Git's authentication stream. It instantly detects your active directory context and routes your request to the exact token stored securely in the native OS keychain (macOS `security` or Linux `secret-tool`).
-
-To use this, simply provide a **Provider Username** (e.g. GitHub handle) during `gitsetu setup` and enter your PAT when prompted. GitSetu handles the rest with absolute zero-dependency isolation.
-
----
-
-## 05. The "Identity Guard"
-
-Ever accidentally pushed a commit to your company repository using your `anime_fan_99@gmail.com` email address? 
-
-GitSetu includes a global pre-commit hook that actively monitors your `$PWD` and blocks commits if your active `user.email` doesn't match the expected profile for that folder.
+Block accidental commits with the wrong identity:
 
 ```bash
-# Install the global identity guard
 gitsetu guard --install
 ```
 
@@ -157,61 +127,98 @@ $ git commit -m "fix critical auth bug"
 
 ---
 
-## 06. Encrypted State Export (Backup / Restore)
+## HTTPS Credential Broker
 
-If you need to migrate your identities to a new laptop, GitSetu provides a pure-Bash encryption engine to export your state. Because GitSetu manages your private SSH keys and PATs, the backup engine uses native OpenSSL with `-pbkdf2` key derivation to aggressively encrypt the archive.
+When SSH (Port 22) is blocked by corporate firewalls, GitSetu's Git Credential Broker manages your PATs per-profile:
 
-```bash
-# Encrypt your entire state into a secure vault file
-gitsetu backup vault.enc
+- Detects active directory context automatically
+- Routes authentication to the correct token
+- Stores credentials in the native OS keychain (macOS `security`, Linux `secret-tool`)
+- Eliminates 403 errors from multi-account GitHub/GitLab setups
 
-# On the new laptop, restore the state and regenerate global Git configurations
-gitsetu restore vault.enc
-```
-
-> **Pre-Flight Safety Net:** The `restore` command natively prevents catastrophic data loss. If it detects an active GitSetu environment on the new machine, it will automatically run a silent background backup of the current state before wiping and extracting the new vault.
+Provide a **Provider Username** during `gitsetu setup` and enter your PAT when prompted.
 
 ---
 
-## 07. Uninstallation
+## Shell Integration
 
-GitSetu leaves no ghost files behind. To safely remove GitSetu and all of its global configuration injections:
+### Autocompletion
+
+Rich <kbd>TAB</kbd> completion for subcommands and profile names:
+```bash
+# Add to ~/.bashrc or ~/.zshrc
+source ~/.local/share/gitsetu/lib/completion.sh
+```
+
+### Prompt (`$PS1`)
+
+Display your active profile in your terminal prompt — executes in under **2ms** (zero subshells):
+
+**Bash:**
+```bash
+export PS1='\[\e[36m\]$(gitsetu prompt)\[\e[0m\] \w $ '
+```
+
+**Zsh:**
+```zsh
+PROMPT='%F{cyan}$(gitsetu prompt)%f %~ $ '
+```
+
+---
+
+## Encrypted Backup & Restore
+
+Migrate identities to a new machine with OpenSSL-encrypted state export:
 
 ```bash
-# 1. Safely remove GitSetu configurations from your global ~/.gitconfig
-gitsetu teardown --deep
+gitsetu backup vault.enc        # Encrypt your entire state
+gitsetu restore vault.enc       # Restore on a new machine
+```
 
-# 2. Remove the repository clone and symlinks
+> **Safety Net:** If an active GitSetu environment is detected on the target machine, `restore` automatically creates a silent pre-flight backup before overwriting.
+
+---
+
+## Ecosystem Comparison
+
+| Feature | `gitego` | `gguser` | `git-profile` | `karn` | **GitSetu** |
+|---------|:---:|:---:|:---:|:---:|:---:|
+| Identity switching | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Directory auto-switch | ✅ | ✅ | ❌ | ✅ | ✅ |
+| SSH key generation | ❌ | ❌ | ❌ | ❌ | ✅ |
+| SSH config orchestration | ❌ | ❌ | ❌ | ❌ | ✅ |
+| HTTPS credential broker | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Pre-commit identity guard | ✅ | ❌ | ❌ | ❌ | ✅ |
+| Encrypted backup/restore | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Shell prompt integration | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Zero dependencies | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Runtime | Go | Node | Rust/JS | Go | **Bash 3.2** |
+
+---
+
+## Enterprise & CI/CD
+
+GitSetu is built for highly parallel CI/CD environments and zero-touch provisioning:
+
+- **Zero-Trust Pre-Commit Guard** — Fail-closed identity verification. Blocks commits when GitSetu config is missing or tampered with.
+- **Atomic POSIX Locks** — `mkdir`-based directory locks with automatic stale lock reaping via atomic `mv` swap.
+- **Atomic Config Writes** — Configuration files are written to temp files and atomically swapped via `mv`. No partial writes.
+- **Unified Cleanup Architecture** — `EXIT`/`SIGINT`/`SIGTERM` traps ensure zero leaked temp files or orphaned locks.
+
+---
+
+## Uninstallation
+
+```bash
+gitsetu teardown --deep          # Remove all config injections
 curl -sL https://raw.githubusercontent.com/bhaskarjha-com/gitsetu/main/uninstall.sh | bash
 ```
-*(Note: Your generated `~/.ssh/id_ed25519_*` keys are intentionally preserved for safety).*
+
+> Your generated `~/.ssh/id_ed25519_*` keys are intentionally preserved for safety.
 
 ---
 
-## 08. Enterprise Automation & Zero-Trust Architecture
-
-GitSetu is designed from the ground up for highly parallel CI/CD environments and zero-touch `ansible` provisioning, adopting a **strictly secure, Zero-Trust Architecture**:
-* **Zero-Trust Pre-Commit Guard & SSOT:** The identity guard enforces a "fail-closed" boundary. If the GitSetu configuration is missing, tampered with, or if the environment's `$HOME` is overridden maliciously, the hook will unconditionally block the commit. To prevent "dual-state" desynchronization, the guard acts as a Single Source of Truth (SSOT), dynamically querying the isolated `.gitconfig` files instead of relying on central registries.
-* **Atomic POSIX Locks & Stale Reaping:** Headless profile creation utilizes an atomic `mkdir` directory lock. If a process crashes (`kill -9`), subsequent processes will automatically reap the stale lock via an atomic `mv` swap, perfectly eliminating Time-of-Check to Time-of-Use race conditions and preventing permanent deadlocks.
-* **Atomic Filesystem Swaps & Unified Cleanup:** Configuration files are never modified in-place. They are written to a temporary (`mktemp`) file and atomically swapped via `mv`. A unified architecture bound to `EXIT/SIGINT/SIGTERM` ensures that no temporary files or orphaned locks ever leak onto the host machine.
-
----
-
-## 09. Ecosystem Comparison
-
-| Feature | `gitego` (Go) | `gguser` (Node) | `git-profile` (Rust/JS) | `karn` (Go) | **GitSetu (Bash)** |
-|---------|:---:|:---:|:---:|:---:|:---:|
-| **Identity Switching** | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Directory-Based Auto Switch** | ✅ | ✅ | ❌ | ✅ | ✅ |
-| **SSH Key Generation** | ❌ | ❌ | ❌ | ❌ | ✅ |
-| **SSH Config Orchestration** | ❌ | ❌ | ❌ | ❌ | ✅ |
-| **Pre-Commit Identity Guard** | ✅ | ❌ | ❌ | ❌ | ✅ |
-| **Absolute Zero Dependencies** | ❌ | ❌ | ❌ | ❌ | ✅ |
-| **Safe Idempotent Execution** | ❌ | ❌ | ❌ | ❌ | ✅ |
-
----
-
-## 10. Philosophy
+## Philosophy
 
 In Sanskrit, *Setu (सेतु)* is the bridge that connects two shores without disturbing either. It doesn't change the shore. It doesn't own the water. It simply makes crossing effortless and reliable.
 
@@ -221,4 +228,8 @@ GitSetu is built on the same principle. It does not replace Git, SSH, or your te
 
 ---
 
-[MIT License](LICENSE) — Created by Bhaskar Jha
+<div align="center">
+
+[MIT License](LICENSE) · Created by [Bhaskar Jha](https://github.com/bhaskarjha-com)
+
+</div>
