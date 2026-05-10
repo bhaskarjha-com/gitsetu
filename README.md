@@ -1,13 +1,15 @@
 <div align="center">
 
-<img src="docs/assets/logo.png" alt="GitSetu" width="280" />
+<img src="docs/assets/logo.png" alt="GitSetu" width="200" />
+
+# GitSetu
 
 **The bridge between your identities and your repositories.**
 
 *Zero deps. No daemon. Pure Bash.*
 
 [![CI](https://github.com/bhaskarjha-com/gitsetu/actions/workflows/ci.yml/badge.svg)](https://github.com/bhaskarjha-com/gitsetu/actions/workflows/ci.yml)
-[![ShellCheck](https://github.com/bhaskarjha-com/gitsetu/actions/workflows/ci.yml/badge.svg)](https://www.shellcheck.net/)
+[![ShellCheck](https://img.shields.io/badge/ShellCheck-passing-brightgreen?logo=gnu-bash&logoColor=white)](https://www.shellcheck.net/)
 [![License: MIT](https://img.shields.io/github/license/bhaskarjha-com/gitsetu?color=blue)](LICENSE)
 [![Bash 3.2+](https://img.shields.io/badge/bash-3.2%2B-orange?logo=gnubash&logoColor=white)](https://www.gnu.org/software/bash/)
 [![Tests](https://img.shields.io/badge/tests-165%20passing-brightgreen)]()
@@ -73,7 +75,7 @@ Author: Aditya Kumar <dev@company.com> ← correct, automatically
 
 | | Feature | Description |
 |---|---------|-------------|
-| 🔑 | **SSH Key Generation** | Dedicated ED25519 keypair per profile (`~/.ssh/id_ed25519_<label>`) |
+| 🔑 | **SSH Key Generation** | Dedicated ED25519 keypair per profile (`~/.ssh/id_ed25519_‹label›`) |
 | 🔐 | **HTTPS Credential Broker** | Per-profile PAT management via macOS Keychain or Linux `secret-tool` |
 | 🛡️ | **Identity Guard** | Pre-commit hook blocks commits if your email doesn't match the directory |
 | ⚡ | **2ms Shell Prompt** | `gitsetu prompt` — zero-subshell `$PS1` integration |
@@ -103,7 +105,7 @@ graph TD
 **The "Magical Clone"** — Other tools require custom SSH host aliases (`git@github-work:repo`). GitSetu uses Git's native `includeIf` to intercept clones mid-flight and inject the correct key. You just `git clone` normally. It works.
 
 What GitSetu writes for each profile:
-1. **SSH keypair** — `~/.ssh/id_ed25519_<label>` (unique per profile)
+1. **SSH keypair** — `~/.ssh/id_ed25519_‹label›` (unique per profile)
 2. **Scoped gitconfig** — `includeIf` block in `~/.gitconfig` for the profile directory
 3. **SSH host alias** — `Host` block in `~/.ssh/config`
 
@@ -154,13 +156,13 @@ source ~/.local/share/gitsetu/lib/completion.sh
 
 Display your active profile in your terminal prompt — executes in under **2ms** (zero subshells):
 
-**Bash:**
-```bash
+**Bash** — add to `~/.bashrc`:
+```text
 export PS1='\[\e[36m\]$(gitsetu prompt)\[\e[0m\] \w $ '
 ```
 
-**Zsh:**
-```zsh
+**Zsh** — add to `~/.zshrc`:
+```text
 PROMPT='%F{cyan}$(gitsetu prompt)%f %~ $ '
 ```
 
