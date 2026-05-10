@@ -39,8 +39,31 @@ Because Bash scripts are vulnerable to race conditions (Time-of-Check to Time-of
 * The `lib/guard.sh` file utilizes `mkdir` to establish an atomic system lock during multi-process operations.
 * A unified `EXIT/SIGINT/SIGTERM` trap ensures that no orphaned lock files or raw credentials ever leak if the user mashes `Ctrl+C`.
 
+## Module Map
+
+GitSetu is composed of 15 library modules sourced by the main `gitsetu` script:
+
+| Module | Responsibility |
+|--------|---------------|
+| `core.sh` | Version, XDG paths, 9 parallel state arrays, `load_profiles()`, `remove_profile_at_index()` |
+| `platform.sh` | OS detection (`detect_os`), path normalization, gitdir keyword selection |
+| `ui.sh` | Terminal output (`print_success/error/warning/info`), interactive prompts, banner |
+| `validate.sh` | Input validation: emails, GitHub noreply, labels, path overlap detection |
+| `setup.sh` | Interactive wizard, headless `cmd_add`/`cmd_profile`, blueprint execution, POSIX lock reaper |
+| `gitconfig.sh` | `includeIf` block generation, managed block protocol, profile gitconfig, `profiles.conf` registry |
+| `ssh.sh` | SSH key generation (ED25519/FIDO2), `~/.ssh/config` host alias management |
+| `guard.sh` | Pre-commit identity guard hook installation, hook script generation, local hook pass-through |
+| `doctor.sh` | Diagnostic checks: registry, SSH agent, managed blocks, configuration drift |
+| `verify.sh` | Infrastructure verification: SSH key existence/permissions, gitconfig integrity |
+| `backup.sh` | File-level timestamped backups, OpenSSL encrypted vault export/import |
+| `teardown.sh` | Profile removal, managed block cleanup, deep local-repo identity stripping |
+| `discovery.sh` | Auto-discovery: SSH key email extraction, gitconfig identity parsing, workspace detection |
+| `keychain.sh` | Credential broker: file-based PAT storage with macOS Keychain / Linux `secret-tool` backends |
+| `completion.sh` | TAB completion for Bash/Zsh: subcommands and profile name completion |
+
 ## Contributing Constraints
 If you submit a Pull Request to GitSetu, you must adhere to the following:
 1. **Zero External Dependencies**: No Python, no Node, no `awk` beyond basic POSIX compliance.
 2. **Bash 3.2 Compatibility**: You may not use modern Bash 4+ features (like associative arrays `declare -A`) because GitSetu must run natively on outdated macOS systems.
 3. **No Network Requests**: GitSetu operates in a strict offline, zero-trust sandbox.
+

@@ -66,11 +66,6 @@ print_section() {
     printf >&2 '\n  %b─── %s ───%b\n\n' "$BOLD" "$title" "$RESET"
 }
 
-# Thin divider line
-print_divider() {
-    printf >&2 '  %b──────────────────────────────────────────%b\n' "$DIM" "$RESET"
-}
-
 # Step indicator: → message
 print_step() {
     printf >&2 '  %b%s%b %s\n' "$CYAN" "$SYM_ARROW" "$RESET" "$1"
@@ -123,15 +118,6 @@ print_key_box() {
         printf >&2 '  %b%s%b Copy and add at: %bhttps://github.com/settings/ssh/new%b\n' "$BLUE" "$SYM_INFO" "$RESET" "$BOLD" "$RESET"
     fi
     printf >&2 '\n'
-}
-
-# Print text with indentation (for multi-line blocks)
-print_indented() {
-    local text="$1"
-    local indent="${2:-    }"
-    while IFS= read -r line; do
-        printf >&2 '%s%s\n' "$indent" "$line"
-    done < <(printf '%s\n' "$text")
 }
 
 # ------------------------------------------------------------------------------
@@ -201,61 +187,6 @@ ask_required() {
 
         if [[ -z "$REPLY" ]]; then
             print_warning "This field is required."
-        fi
-    done
-}
-
-# Ask for email with validation. Result in $REPLY.
-# Usage: ask_email "Email address" "default@example.com"
-ask_email() {
-    local prompt="$1"
-    local default="${2:-}"
-    local valid=0
-
-    while [[ "$valid" -eq 0 ]]; do
-        ask "$prompt" "$default"
-
-        if validate_email "$REPLY"; then
-            valid=1
-        else
-            print_warning "Invalid email format. Please include @ and domain."
-        fi
-    done
-}
-
-# Ask for a directory path with tilde expansion. Result in $REPLY.
-# Usage: ask_path "Project directory" "~/dev/pro"
-ask_path() {
-    local prompt="$1"
-    local default="${2:-}"
-
-    ask "$prompt" "$default"
-
-    # Expand tilde
-    REPLY=$(normalize_path "$REPLY")
-}
-
-# Ask for a number within bounds. Result in $REPLY.
-# Usage: ask_count "How many profiles?" 1 10
-ask_count() {
-    local prompt="$1"
-    local min="$2"
-    local max="$3"
-    local valid=0
-
-    if [[ -n "${CI:-}" ]] || [[ ! -t 0 ]]; then
-        print_error "Interactive prompt failed in CI/non-TTY environment: $prompt"
-        exit 1
-    fi
-
-    while [[ "$valid" -eq 0 ]]; do
-        printf >&2 '  %b[?]%b %s %b(%d-%d)%b: ' "$CYAN" "$RESET" "$prompt" "$DIM" "$min" "$max" "$RESET"
-        read -r REPLY </dev/tty || true
-
-        if [[ "$REPLY" =~ ^[0-9]+$ ]] && [[ "$REPLY" -ge "$min" ]] && [[ "$REPLY" -le "$max" ]]; then
-            valid=1
-        else
-            print_warning "Please enter a number between $min and $max."
         fi
     done
 }

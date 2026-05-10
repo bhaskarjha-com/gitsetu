@@ -461,6 +461,8 @@ cmd_profile() {
                 PROFILE_PROVIDERS[idx]="github.com"
                 PROFILE_SIGNS[idx]="${GITSETU_DEFAULT_SIGN:-0}"
                 PROFILE_KEYS[idx]="$HOME/.ssh/id_ed25519_${label}"
+                PROFILE_USERS[idx]=""
+                PROFILE_PATS[idx]=""
             fi
 
             # Parse flags

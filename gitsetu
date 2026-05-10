@@ -188,10 +188,15 @@ ${BOLD}gitsetu${RESET} v${GITSETU_VERSION} — One command. All identities. Ever
 
 ${BOLD}USAGE${RESET}
     gitsetu setup [--dry-run]        Interactive setup wizard
+    gitsetu add <label> <name> <email> <dir>
+                                     Add a profile (non-interactive)
+    gitsetu remove <label>           Remove a profile
     gitsetu status                   Show current identity configuration
     gitsetu verify                   Test SSH keys and git config
-    ${CYAN}gitsetu backup [out_file]${RESET}    Export encrypted identity state
-    ${CYAN}gitsetu restore <in_file>${RESET}    Import encrypted identity state
+    gitsetu doctor                   Run diagnostic checks
+    gitsetu prompt                   Print active profile for \$PS1
+    gitsetu backup [out_file]        Export encrypted identity state
+    gitsetu restore <in_file>        Import encrypted identity state
     gitsetu run <profile> -- <cmd>   Run command as specific identity
     gitsetu teardown [--force] [--deep]  Remove all configurations
                                      --deep: Recursively strip local repository overrides
@@ -201,29 +206,21 @@ ${BOLD}USAGE${RESET}
     gitsetu --help, -h               Show this help
     gitsetu --version, -v            Show version
 
-${BOLD}DESCRIPTION${RESET}
-    gitsetu automates the setup of multiple Git identities and SSH keys.
-    It generates Ed25519 SSH keys, creates ~/.gitconfig with conditional
-    includes, sets up ~/.ssh/config host aliases, and verifies everything
-    works — all in a single interactive session.
-
 ${BOLD}EXAMPLES${RESET}
     ${DIM}# First-time setup:${RESET}
-    git clone https://github.com/bhaskarjha-com/gitsetu.git
-    cd gitsetu
-    ./gitsetu setup
+    gitsetu setup
 
-    ${DIM}# Preview what setup would do:${RESET}
-    ./gitsetu setup --dry-run
+    ${DIM}# Add a profile non-interactively:${RESET}
+    gitsetu add work "Your Name" work@company.com ~/work
 
     ${DIM}# Check current identity:${RESET}
-    ./gitsetu status
+    gitsetu status
 
     ${DIM}# Run git as a specific profile:${RESET}
-    ./gitsetu run work -- git commit -m "fix"
+    gitsetu run work -- git commit -m "fix"
 
     ${DIM}# Install commit safety net:${RESET}
-    ./gitsetu guard --install
+    gitsetu guard --install
 
 ${BOLD}MORE INFO${RESET}
     https://github.com/bhaskarjha-com/gitsetu
@@ -538,10 +535,10 @@ cmd_remove() {
     load_profiles
     
     # 4. Re-run block generators (idempotent, they will overwrite the global configs without the removed profile)
-    if ! write_global_gitconfig >/dev/null; then
+    if ! write_global_gitconfig; then
         print_warning "Failed to regenerate ~/.gitconfig. Run 'gitsetu setup' to repair."
     fi
-    if ! write_ssh_config >/dev/null; then
+    if ! write_ssh_config; then
         print_warning "Failed to regenerate ~/.ssh/config. Run 'gitsetu setup' to repair."
     fi
     
