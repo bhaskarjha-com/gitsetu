@@ -16,6 +16,21 @@
 #   5. Fallback to uname -s
 # ------------------------------------------------------------------------------
 detect_os() {
+    # Allow tests/callers to override detection by pre-setting GITSETU_OS.
+    # This is critical for CI: macOS `security` commands hang in headless environments.
+    # Check env var first, then fall back to marker file (env vars don't propagate
+    # through pipelines in background subshells on macOS bash 3.2).
+    if [[ -n "${GITSETU_OS:-}" ]]; then
+        return 0
+    fi
+    local _os_file="${XDG_CONFIG_HOME:-$HOME/.config}/gitsetu/.test_os"
+    if [[ -f "$_os_file" ]]; then
+        GITSETU_OS=$(cat "$_os_file" 2>/dev/null)
+        if [[ -n "$GITSETU_OS" ]]; then
+            return 0
+        fi
+    fi
+
     # Check WSL first — it masquerades as Linux
     if [[ -f /proc/version ]]; then
         local proc_version
