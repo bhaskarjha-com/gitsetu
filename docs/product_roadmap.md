@@ -1,12 +1,12 @@
 # GitSetu Product Roadmap (v2.0)
 
-*Last Updated: Following the v1.1.1 Production Readiness Audit, transitioning the backlog into the v2.0 development cycle.*
+*Last Updated: 2026-05-10 — Following the v1.0.0 public release, transitioning the backlog into the v2.0 development cycle.*
 
 ---
 
-## ✅ Completed in v1.1.x (Zero-Trust Security & Baseline)
+## ✅ Completed in v1.0.0 (First Official Public Release)
 
-The following critical features and architectural fixes have been successfully implemented and verified:
+The following features and architectural hardening have been shipped and verified (165 automated tests, cross-platform CI):
 - **Zero-Trust Identity Guard**: Enforces a strict fail-closed boundary on pre-commit; hard blocks commits if configuration is missing or tampered with.
 - **Single Source of Truth (SSOT)**: Identity synchronization is guaranteed by dynamically querying isolated `.gitconfig` files, stripping dual-state variables from `profiles.conf`.
 - **Unified Global Lifecycle (Filesystem Safe)**: Safe trapping of signals (`EXIT/SIGINT/SIGTERM`) to purge transient arrays, temporary files (via `mktemp` registration), and orphaned locks under all catastrophic termination scenarios.

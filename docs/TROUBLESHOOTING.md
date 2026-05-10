@@ -11,14 +11,14 @@ Before digging into specifics, run GitSetu's built-in diagnostic tools. These in
 ### 1. Check Active Status
 Navigate to the repository you are having trouble with and run:
 ```bash
-./gitsetu status
+gitsetu status
 ```
 This will tell you exactly which identity Git is using for the current directory and the specific SSH key it will attempt to use.
 
 ### 2. Verify Infrastructure
 Run the full verification suite to ensure your keys, configs, and permissions are perfectly aligned:
 ```bash
-./gitsetu verify
+gitsetu verify
 ```
 
 ---
@@ -32,11 +32,11 @@ Run the full verification suite to ensure your keys, configs, and permissions ar
 
 This almost always means your public key hasn't been uploaded to GitHub/GitLab.
 
-1. **Copy your public key:** `cat ~/.ssh/id_ed25519_<label>.pub`
+1. **Copy your public key:** `cat ~/.ssh/id_ed25519_‹label›.pub`
 2. **Add it to GitHub:** Navigate to [GitHub SSH Settings](https://github.com/settings/ssh/new) and paste the key.
 3. **Verify Connection:** Use the testing alias to verify GitHub recognizes the key:
    ```bash
-   ssh -T git@github-<label>
+   ssh -T git@github-‹label›
    # Expected: Hi username! You've successfully authenticated...
    ```
 
@@ -55,7 +55,7 @@ If you see this error, you are trying to add a key to your `work` account that i
 If you are running an `ssh -T` test and get this error, check your `~/.ssh/config`:
 1. Ensure the file exists.
 2. Verify it contains the `# [gitsetu:managed:start] pro` block.
-3. If it is missing, simply run `./gitsetu setup` again. GitSetu is fully idempotent and will safely repair the file.
+3. If it is missing, simply run `gitsetu setup` again. GitSetu is fully idempotent and will safely repair the file.
 
 ---
 
@@ -71,7 +71,7 @@ If you `cd` into a profile directory but Git still uses your global identity, th
 **Common Causes:**
 1. **Trailing Slash:** The path in `~/.gitconfig` must end with a trailing slash (e.g., `gitdir:~/dev/pro/`). GitSetu handles this automatically.
 2. **Missing `.git` Directory:** `includeIf` only triggers if the current folder is a Git repository, OR if you are actively cloning a repository into it.
-3. **Dubious Ownership (VirtualBox/WSL):** Git actively blocks `includeIf` execution if the directory is owned by a different user (common in shared mounts). GitSetu automatically mitigates this using `safe.directory` rules. If you manually moved folders, run `./gitsetu setup` again to update the safe directories.
+3. **Dubious Ownership (VirtualBox/WSL):** Git actively blocks `includeIf` execution if the directory is owned by a different user (common in shared mounts). GitSetu automatically mitigates this using `safe.directory` rules. If you manually moved folders, run `gitsetu setup` again to update the safe directories.
 
 ### Identity Guard Hook Triggered
 
@@ -98,12 +98,12 @@ If your Git or SSH environment is completely corrupted, the safest route is to w
 
 1. **Safely remove all GitSetu configurations:**
    ```bash
-   ./gitsetu teardown
+   gitsetu teardown
    ```
    *(This cleanly removes GitSetu from `~/.gitconfig` and `~/.ssh/config` without touching your custom settings. It leaves your SSH keys safely on disk so you aren't locked out of GitHub).*
 
 2. **Re-run the setup:**
    ```bash
-   ./gitsetu setup
+   gitsetu setup
    ```
    When prompted about existing keys, select `skip (keep current)` to immediately restore your access without needing to upload new keys to GitHub.
