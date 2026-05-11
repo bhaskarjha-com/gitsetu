@@ -1,6 +1,31 @@
 # GitSetu Product Roadmap (v2.0)
 
-*Last Updated: 2026-05-10 — Following the v1.0.0 public release, transitioning the backlog into the v2.0 development cycle.*
+*Last Updated: 2026-05-11 — Updated with competitive ecosystem analysis (May 2026).*
+
+---
+
+## 🏆 Competitive Position (May 2026 Ecosystem Analysis)
+
+### Competitive Moat — Features Only GitSetu Has
+No other tool in the ecosystem provides these capabilities:
+
+1. **SSH key generation** — Every competitor requires pre-existing keys
+2. **SSH config orchestration** — No tool writes `~/.ssh/config` host aliases
+3. **Encrypted backup/restore** — Zero competitors offer state migration
+4. **Shell prompt integration** — Sub-2ms `$PS1` identity display
+5. **FIDO2/YubiKey hardware key support** — Unique `ed25519-sk` bootstrapping
+6. **Diagnostic doctor** — No competitor has self-diagnostic tooling
+7. **Zero dependencies** — Only tool requiring nothing beyond `bash` + `git` + `ssh-keygen`
+
+### Primary Competitor: `gitego` (Go)
+The most feature-complete alternative. Shares `includeIf`-based auto-switching and credential helper.
+**Key gaps vs GitSetu:** No SSH generation, no SSH config, no backup, no prompt, no FIDO2, requires Go 1.24+ toolchain.
+
+### Secondary Competitors
+- **`karn` (Go)** — Stale (last updated ~2019). Identity-only via YAML. Overrides `git` command.
+- **`gh` CLI** — HTTPS token switching only (`gh auth switch`). No SSH, no identity management.
+- **GCM (.NET)** — HTTPS credential helper with namespace isolation. No SSH, no identity.
+- **`auto-git-config`** — Rule-based matching (remote host/org/regex). Unique matching model worth studying.
 
 ---
 
@@ -51,17 +76,23 @@ The following features and architectural hardening have been shipped and verifie
 **Solution:** Introduce a `gitsetu rotate` subcommand that automatically checks filesystem modification times (`stat`) and warns users of expiring keys, followed by a clean re-generation process.
 **Difficulty:** High (due to lack of robust external API integration in Bash).
 
-### 4. Bash Event Plugin System
+### 4. Rule-Based Identity Matching (`gitsetu match`)
+**Problem:** Directory-based matching (`includeIf gitdir:`) fails for scattered repositories that don't fit a clean folder hierarchy.
+**Competitive insight:** `auto-git-config` matches by remote host, organization, or regex patterns — a model worth adopting.
+**Solution:** Allow identity rules based on remote URL patterns (e.g., `gitsetu match --remote=github.com/company-org/* work`), applying the correct profile regardless of directory location.
+**Difficulty:** High (requires hooking into `post-checkout` or `post-clone`).
+
+### 5. Bash Event Plugin System
 **Problem:** Users want to trigger custom scripts (e.g. notify Slack, change terminal colors) when switching identities.
 **Solution:** Allow users to drop `.sh` scripts into a `plugins/` folder that execute during the `on_profile_switch` lifecycle event.
 **Difficulty:** Medium.
 
-### 5. Configuration Drift Detection (`gitsetu drift`)
+### 6. Configuration Drift Detection (`gitsetu drift`)
 **Problem:** Users might accidentally manually edit `~/.gitconfig` and break GitSetu's routing.
 **Solution:** A background check that diffs the current Git config against GitSetu's expected state and warns the user.
 **Difficulty:** Medium.
 
-### 6. Backup Encryption Agility
+### 7. Backup Encryption Agility
 **Problem:** Users may prefer modern encryption binaries over legacy OpenSSL wrappers.
 **Solution:** Expand the OpenSSL vault logic in `gitsetu backup` to dynamically detect and support `age` or `gpg` encryption depending on host system availability.
 **Difficulty:** Medium.
@@ -70,12 +101,12 @@ The following features and architectural hardening have been shipped and verifie
 
 ## 🟢 Might Have (v2.0 Horizon & Experimental)
 
-### 7. 1Password SSH & Git Integration
+### 8. 1Password SSH & Git Integration
 **Problem:** Users utilizing 1Password don't want local SSH keys generated at all.
 **Solution:** Detect the 1Password CLI (`op`) and automatically configure Git's `core.sshCommand` to route through their agent socket instead of generating local keys.
 **Difficulty:** Very High.
 
-### 8. Scoped Repository Auto-Discovery
+### 9. Scoped Repository Auto-Discovery
 **Problem:** Users want GitSetu to automatically find their misplaced `.git` repositories.
 **Constraint Note:** Bash 3.2 lacks `globstar` (`**`). Using `find` on macOS will crawl network mounts. This feature *must* be strictly scoped to a single path (e.g., `gitsetu scan ~/dev`).
 **Difficulty:** High.
@@ -84,6 +115,7 @@ The following features and architectural hardening have been shipped and verifie
 
 ## ❌ Out of Scope / Rejected
 
-### 9. Historical Commit Sanitizer (`gitsetu sanitize`)
+### 10. Historical Commit Sanitizer (`gitsetu sanitize`)
 **Problem:** Users want to rewrite Git history to remove leaked personal emails.
 **Constraint Note:** **Rejected.** The official tool `git-filter-repo` requires Python. Rewriting history in pure Bash 3.2 is wildly dangerous, highly complex, and risks catastrophic repository corruption. This violates our zero-dependency safety constraints.
+

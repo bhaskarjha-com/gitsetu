@@ -183,18 +183,23 @@ gitsetu restore vault.enc       # Restore on a new machine
 
 ## Ecosystem Comparison
 
-| Feature | `gitego` | `gguser` | `git-profile` | `karn` | **GitSetu** |
+> Verified May 2026 against each project's README. ⚡ = partial support.
+
+| Feature | **GitSetu** | `gitego` | `karn` | `gh` CLI | GCM |
 |---------|:---:|:---:|:---:|:---:|:---:|
-| Identity switching | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Directory auto-switch | ✅ | ✅ | ❌ | ✅ | ✅ |
-| SSH key generation | ❌ | ❌ | ❌ | ❌ | ✅ |
-| SSH config orchestration | ❌ | ❌ | ❌ | ❌ | ✅ |
-| HTTPS credential broker | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Pre-commit identity guard | ✅ | ❌ | ❌ | ❌ | ✅ |
-| Encrypted backup/restore | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Shell prompt integration | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Zero dependencies | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Runtime | Go | Node | Rust/JS | Go | **Bash 3.2** |
+| Directory auto-switch | ✅ | ✅ | ✅ | ❌ | ❌ |
+| Uses native `includeIf` | ✅ | ✅ | ❌ | ❌ | ❌ |
+| SSH key **generation** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| SSH config orchestration | ✅ | ❌ | ❌ | ❌ | ❌ |
+| HTTPS credential broker | ✅ | ✅ | ❌ | ✅ | ✅ |
+| Pre-commit identity guard | ✅ | ⚡ | ❌ | ❌ | ❌ |
+| SSH commit signing | ✅ | ❌ | ⚡ | ❌ | ❌ |
+| FIDO2 / YubiKey support | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Encrypted backup/restore | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Shell prompt (~2ms) | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Diagnostic doctor | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Zero dependencies | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Runtime | **Bash 3.2** | Go 1.24 | Go | Go | .NET |
 
 ---
 
