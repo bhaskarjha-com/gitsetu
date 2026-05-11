@@ -41,6 +41,8 @@ curl -sL https://raw.githubusercontent.com/bhaskarjha-com/gitsetu/main/install.s
 |---------|-------------|-------------|
 | 🔴 **Wrong author commits** | You push a freelance project and your work email shows up in the log | Directory-scoped `includeIf` auto-switches identity |
 | 🔴 **SSH key collisions** | One SSH key for three GitHub accounts — pushes fail silently | Dedicated ED25519 keypair per profile |
+| 🔴 **Corporate firewall blocks SSH** | Port 22 blocked — PATs get mixed between accounts, 403 errors | Per-profile credential broker via OS keychain |
+| 🔴 **Forgot to switch identity** | Commit lands with the wrong email — can't rewrite public history | Pre-commit guard blocks the commit before it happens |
 | 🔴 **Manual global config** | Edit `~/.gitconfig` before every context switch, then forget | One-time setup, automatic forever |
 | 🔴 **Heavy tooling** | Every solution requires Node, Python, or a background daemon | Pure Bash 3.2. Zero dependencies. |
 
@@ -75,14 +77,14 @@ Author: Aditya Kumar <dev@company.com> ← correct, automatically
 
 | | Feature | Description |
 |---|---------|-------------|
-| 🔑 | **SSH Key Generation** | Dedicated ED25519 keypair per profile (`~/.ssh/id_ed25519_‹label›`) |
-| 🔐 | **HTTPS Credential Broker** | Per-profile PAT management via macOS Keychain or Linux `secret-tool` |
-| 🛡️ | **Identity Guard** | Pre-commit hook blocks commits if your email doesn't match the directory |
-| ⚡ | **2ms Shell Prompt** | `gitsetu prompt` — zero-subshell `$PS1` integration |
-| 📦 | **Encrypted Backup** | Export/restore your entire identity state with OpenSSL encryption |
-| 🔄 | **Idempotent & Non-Destructive** | Safe to run 100 times. Managed blocks — your custom config is never touched |
+| 🏗️ | **Zero Dependencies** | Pure Bash 3.2. No Node, Python, Go, or package managers required |
 | 🖥️ | **Cross-Platform** | Linux, macOS, Windows (Git Bash), WSL — one tool everywhere |
-| 🏗️ | **Zero Dependencies** | Pure Bash. No Node, Python, Go, or package managers required |
+| 🔑 | **SSH Key Generation** | Generates a dedicated ED25519 keypair per profile and wires up `~/.ssh/config` |
+| 🛡️ | **Identity Guard** | Pre-commit hook blocks commits if your email doesn't match the directory |
+| 🔐 | **HTTPS Credential Broker** | Per-profile PAT management via macOS Keychain or Linux `secret-tool` |
+| 🔄 | **Idempotent & Non-Destructive** | Safe to run 100 times. Managed blocks — your custom config is never touched |
+| 📦 | **Encrypted Backup** | Export/restore your entire identity state with OpenSSL encryption |
+| ⚡ | **Shell Prompt** | `gitsetu prompt` — zero-subshell `$PS1` integration (~2ms) |
 
 ---
 
@@ -125,6 +127,17 @@ $ git commit -m "fix critical auth bug"
 ⚠ gitsetu: Identity mismatch detected!
   Expected: engineering@company.com (profile: work)
   Actual:   personal@gmail.com
+```
+
+---
+
+## Diagnostics
+
+GitSetu includes built-in tools to verify and debug your configuration:
+
+```bash
+gitsetu verify             # Test SSH keys, configs, and permissions
+gitsetu doctor             # Diagnose registry, agent, and config drift
 ```
 
 ---
@@ -233,10 +246,14 @@ GitSetu is built on the same principle. It does not replace Git, SSH, or your te
 
 **A tool that demands your attention has failed. GitSetu succeeds when you forget it exists.**
 
+> Read the full [Design Manifesto](docs/MANIFESTO.md) for the architectural philosophy behind GitSetu.
+
 ---
 
 <div align="center">
 
-[MIT License](LICENSE) · Created by [Bhaskar Jha](https://github.com/bhaskarjha-com)
+[MIT License](LICENSE) · [Contributing](CONTRIBUTING.md) · [Architecture](docs/ARCHITECTURE.md) · [Troubleshooting](docs/TROUBLESHOOTING.md)
+
+Created by [Bhaskar Jha](https://github.com/bhaskarjha-com)
 
 </div>

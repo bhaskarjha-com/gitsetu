@@ -9,7 +9,7 @@ git clone https://github.com/bhaskarjha-com/gitsetu.git
 cd gitsetu
 ```
 
-No build step. No dependencies to install.
+No build step. No dependencies to install. See the [Architecture Guide](docs/ARCHITECTURE.md) for how the codebase is structured.
 
 ## Running Tests
 

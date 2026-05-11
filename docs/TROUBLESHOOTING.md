@@ -21,6 +21,12 @@ Run the full verification suite to ensure your keys, configs, and permissions ar
 gitsetu verify
 ```
 
+### 3. Run Diagnostics
+For deeper checks (registry integrity, SSH agent, managed block drift):
+```bash
+gitsetu doctor
+```
+
 ---
 
 ## 🔑 SSH Connectivity Issues

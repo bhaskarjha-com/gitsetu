@@ -2,6 +2,8 @@
 
 Welcome to the internal mechanics of GitSetu. This document serves as a high-level roadmap for contributors looking to understand how GitSetu achieves robust identity management using zero dependencies and pure Bash 3.2.
 
+> For the design philosophy and market positioning behind these decisions, see the [Design Manifesto](MANIFESTO.md).
+
 ## Core Philosophy: Single Source of Truth
 GitSetu avoids long-running daemons. It operates strictly as a "configuration compiler." When you run `gitsetu setup`, the system parses your inputs, compiles the necessary standard files (`~/.gitconfig`, `~/.ssh/config`), and then completely exits.
 
