@@ -19,3 +19,6 @@ test_tmp/
 # One-time scripts
 commit_plan.sh
 gitsetu_vault_pre_restore_*.tar.gz.enc.password
+
+# Website (separate git repo)
+gitsetu-web/
