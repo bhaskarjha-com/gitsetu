@@ -55,6 +55,17 @@ The following features and architectural hardening have been shipped and verifie
 
 ---
 
+## 🚨 Strategic Paradigm Shifts (May 2026 Audit)
+
+Based on the recent brutal zero-bias paradigm audit, we are prioritizing a critical architectural phase to elevate GitSetu to flawless Enterprise Security standards:
+
+### Phase 2: The Native Auto-Updater (`gitsetu update`)
+**Problem:** The `curl | bash` distribution model leaves users stranded on stale versions, preventing the rollout of critical security patches.
+**Solution:** Implement a secure, self-updating mechanism natively within the CLI. The command must securely fetch the latest raw script, verify its integrity, and replace the active binary in the user's path.
+**Difficulty:** High (Security & Cross-Platform Pathing).
+
+---
+
 ## 🔴 Must Have (Target: v2.0 Core)
 
 ### 1. Interactive Headless Expansion
